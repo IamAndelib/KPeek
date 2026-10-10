@@ -19,7 +19,7 @@ Rectangle {
     property real pageWidth: 0
     // Render width in device pixels: rounded up to 256 px steps so resizing the window
     // doesn't re-render every page, and capped to bound memory when zoomed in.
-    readonly property int renderWidth: Math.min(4096, Math.ceil(pageWidth * Screen.devicePixelRatio / 256) * 256)
+    readonly property int renderWidth: Math.min(4096, Math.ceil(pageWidth * PeekController.devicePixelRatio / 256) * 256)
 
     // Keep the point under the view's centre in place when pages change size (zooming or resizing the
     // window). Everything happens here, in order: deferring the scroll position lets one frame show the

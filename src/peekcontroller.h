@@ -42,6 +42,9 @@ class PeekController : public QObject
     Q_PROPERTY(bool showing READ showing NOTIFY showingChanged)
     Q_PROPERTY(QSize imageSize READ imageSize NOTIFY currentChanged)
     Q_PROPERTY(bool animated READ animated NOTIFY currentChanged)
+    /// The window's own scale factor. With fractional scaling (e.g. 125%) it differs from
+    /// Screen.devicePixelRatio, which reports the output's rounded-up integer scale.
+    Q_PROPERTY(qreal devicePixelRatio READ devicePixelRatio NOTIFY devicePixelRatioChanged)
     /// See isLowMemorySystem(): lower caps for image decoding.
     Q_PROPERTY(bool lowMemory READ lowMemory CONSTANT)
     /// Dolphin's cached thumbnail of the file, shown instantly while the real content loads; may be empty.
@@ -72,6 +75,7 @@ public:
     QSize imageSize() const;
     bool animated() const;
     bool lowMemory() const;
+    qreal devicePixelRatio() const;
     QUrl thumbnail() const;
 
 public Q_SLOTS:
@@ -83,6 +87,10 @@ public Q_SLOTS:
 Q_SIGNALS:
     void currentChanged();
     void showingChanged();
+    void devicePixelRatioChanged();
+
+protected:
+    bool eventFilter(QObject *watched, QEvent *event) override;
 
 private:
     void updateCurrent();

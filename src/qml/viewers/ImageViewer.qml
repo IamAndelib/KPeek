@@ -28,7 +28,7 @@ Rectangle {
     // that can't report it up front), and the size it is shown at.
     readonly property size pixelSize: PeekController.imageSize.width > 0 ? PeekController.imageSize
         : Qt.size(base.item?.implicitWidth ?? 0, base.item?.implicitHeight ?? 0)
-    readonly property size naturalSize: Qt.size(pixelSize.width / Screen.devicePixelRatio, pixelSize.height / Screen.devicePixelRatio)
+    readonly property size naturalSize: Qt.size(pixelSize.width / PeekController.devicePixelRatio, pixelSize.height / PeekController.devicePixelRatio)
     readonly property real fitScale: naturalSize.width > 0 && naturalSize.height > 0
         ? Math.min(1, flick.width / naturalSize.width, flick.height / naturalSize.height) : 1
     readonly property real shownWidth: naturalSize.width * fitScale * zoom
@@ -50,7 +50,7 @@ Rectangle {
     // Set (for good) the first time the image is shown larger than the base decode resolves.
     property bool wantsDetail: false
     readonly property bool baseTooSmall: !PeekController.animated && baseReady
-        && shownWidth * Screen.devicePixelRatio > (base.item?.implicitWidth ?? 0) * 1.05
+        && shownWidth * PeekController.devicePixelRatio > (base.item?.implicitWidth ?? 0) * 1.05
     // Above 256 MP even the reduced decode would exceed Qt's image allocation limit and fail, so such
     // images zoom on the base alone.
     readonly property bool detailDecodable: pixelSize.width * pixelSize.height <= 256e6
@@ -146,8 +146,8 @@ Rectangle {
             autoTransform: true
             smooth: true
             // Decoded once, at most at screen size: never the full resolution of huge photos.
-            sourceSize: root.decodeSize(Qt.size(Math.min(Screen.width * Screen.devicePixelRatio, root.detailCap),
-                                                Math.min(Screen.height * Screen.devicePixelRatio, root.detailCap)))
+            sourceSize: root.decodeSize(Qt.size(Math.min(Screen.width * PeekController.devicePixelRatio, root.detailCap),
+                                                Math.min(Screen.height * PeekController.devicePixelRatio, root.detailCap)))
         }
     }
 

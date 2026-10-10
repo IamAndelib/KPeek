@@ -54,6 +54,16 @@ PeekController *PeekController::create(QQmlEngine *, QJSEngine *)
 void PeekController::setWindow(QQuickWindow *window)
 {
     m_window = window;
+    window->installEventFilter(this);
+}
+
+bool PeekController::eventFilter(QObject *watched, QEvent *event)
+{
+    // Also sent when the window moves to a monitor with another scale.
+    if (watched == m_window && event->type() == QEvent::DevicePixelRatioChange) {
+        Q_EMIT devicePixelRatioChanged();
+    }
+    return QObject::eventFilter(watched, event);
 }
 
 void PeekController::showFiles(const QList<QUrl> &urls, bool toggle)
@@ -243,6 +253,11 @@ QSize PeekController::imageSize() const
 bool PeekController::animated() const
 {
     return m_animated;
+}
+
+qreal PeekController::devicePixelRatio() const
+{
+    return m_window ? m_window->devicePixelRatio() : 1.0;
 }
 
 bool PeekController::lowMemory() const
