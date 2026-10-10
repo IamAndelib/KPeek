@@ -81,6 +81,8 @@ Rectangle {
         anchors.top: parent.top
         anchors.right: parent.right
         anchors.margins: Kirigami.Units.largeSpacing
+        // Keep clear of the vertical scrollbar.
+        anchors.rightMargin: Kirigami.Units.largeSpacing + (scroll.QQC2.ScrollBar.vertical?.width ?? 0)
         checkable: true
         checked: root.showSource
         focusPolicy: Qt.NoFocus

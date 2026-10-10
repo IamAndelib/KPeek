@@ -37,6 +37,10 @@ Rectangle {
         });
     }
 
+    // Set once the first decode finishes. Later re-decodes (zooming in for more detail) keep showing
+    // the previous image, so they shouldn't bring up the loading spinner.
+    property bool shownOnce: false
+
     color: Kirigami.Theme.backgroundColor
 
     Flickable {
@@ -71,6 +75,7 @@ Rectangle {
             autoTransform: true
             smooth: true
             retainWhileLoading: true
+            onStatusChanged: if (status === Image.Ready) root.shownOnce = true
             // Decode at screen size (more only once zoomed in), never the full resolution of huge photos.
             readonly property int detail: root.zoom > 2 ? 4 : root.zoom > 1 ? 2 : 1
             sourceSize: Qt.size(Screen.width * Screen.devicePixelRatio * detail, Screen.height * Screen.devicePixelRatio * detail)
@@ -90,7 +95,7 @@ Rectangle {
 
     QQC2.BusyIndicator {
         anchors.centerIn: parent
-        running: imageLoader.item?.status === Image.Loading
+        running: imageLoader.item?.status === Image.Loading && !root.shownOnce
     }
 
     Kirigami.PlaceholderMessage {
