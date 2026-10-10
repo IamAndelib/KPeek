@@ -2,7 +2,6 @@
 // SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
 
 #include "peekcontroller.h"
-#include "imagetiles.h"
 #include "thumbnailcache.h"
 #include "viewerresolver.h"
 
@@ -131,7 +130,6 @@ void PeekController::updateCurrent()
     m_thumbnail = m_viewer == QLatin1String("Image") || m_viewer == QLatin1String("Media") ? ThumbnailCache::find(info.absoluteFilePath()) : QUrl();
     m_imageSize = {};
     m_animated = false;
-    m_tileable = false;
     if (m_viewer == QLatin1String("Image")) {
         // Reads only the header: cheap even for huge photos.
         QImageReader reader(info.absoluteFilePath());
@@ -140,7 +138,6 @@ void PeekController::updateCurrent()
             m_imageSize.transpose();
         }
         m_animated = reader.supportsAnimation() && reader.imageCount() != 1; // 0 means "unknown"
-        m_tileable = !m_animated && ImageTiles::cheapToTile(info.absoluteFilePath());
     }
 
     if (m_isFolder) {
@@ -224,16 +221,6 @@ bool PeekController::animated() const
 QUrl PeekController::thumbnail() const
 {
     return m_thumbnail;
-}
-
-QString PeekController::tileSource(const QSize &scaledSize, const QRect &clip) const
-{
-    return ImageTiles::source(url().toLocalFile(), m_modified.toMSecsSinceEpoch(), scaledSize, clip);
-}
-
-bool PeekController::tileable() const
-{
-    return m_tileable;
 }
 
 #include "moc_peekcontroller.cpp"

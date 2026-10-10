@@ -18,7 +18,6 @@ add_executable(kpeek
     officeconverter.cpp officeconverter.h
     archivemodel.cpp archivemodel.h
     workerpool.h
-    imagetiles.cpp imagetiles.h
 )
 
 qt_add_qml_module(kpeek

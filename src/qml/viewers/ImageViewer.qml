@@ -9,11 +9,13 @@ import io.github.iamandelib.kpeek
 /**
  * Fitted to the window at zoom 1 (never upscaled); zooming in makes it pannable.
  *
- * Three layers keep this fast and frugal whatever the image size:
+ * Like GNOME Sushi and Gwenview: decode once, let the GPU scale while zooming, and never hide pixels
+ * before something better is ready to replace them. Three stacked layers:
  *  1. Dolphin's cached thumbnail, shown instantly while the image decodes;
- *  2. the base: the whole image decoded once at screen size, never again while zooming (no flashing);
- *  3. a detail tile: when zoomed in past what the base resolves, just the visible part, decoded at the
- *     current zoom once zooming or panning settles (ImageTiles in C++). Memory stays at about two screens.
+ *  2. the base: the whole image decoded once at screen size, which is all most previews ever need;
+ *  3. full detail: the first time zooming needs more pixels than the base has, the image is decoded
+ *     once more at its own size (at most 8192 px, within GPU texture limits). It appears on top only
+ *     when ready; until then the base keeps showing, scaled. After that, zooming is pure GPU scaling.
  */
 Rectangle {
     id: root
@@ -32,10 +34,22 @@ Rectangle {
     readonly property real shownWidth: naturalSize.width * fitScale * zoom
     readonly property real shownHeight: naturalSize.height * fitScale * zoom
 
+    // A decode size for an image of pixelSize to fit within `box`, or undefined (decode as is) when it
+    // already fits: Image.sourceSize also scales *up* to the box, which would waste memory and sharpness.
+    function decodeSize(box) {
+        const fits = pixelSize.width > 0 && pixelSize.width <= box.width && pixelSize.height <= box.height;
+        return fits ? undefined : box;
+    }
+
     readonly property bool baseReady: base.item?.status === Image.Ready
-    // Detail tiles only help once the image is shown larger than the base decode.
-    readonly property bool needsTiles: PeekController.tileable && baseReady
+    // Set (for good) the first time the image is shown larger than the base decode resolves.
+    property bool wantsDetail: false
+    readonly property bool baseTooSmall: !PeekController.animated && baseReady
         && shownWidth * Screen.devicePixelRatio > (base.item?.implicitWidth ?? 0) * 1.05
+    // Above 256 MP even the reduced decode would exceed Qt's image allocation limit and fail, so such
+    // images zoom on the base alone.
+    readonly property bool detailDecodable: pixelSize.width * pixelSize.height <= 256e6
+    onBaseTooSmallChanged: if (baseTooSmall && detailDecodable) wantsDetail = true
 
     // Keep the point at the center of the view in place while zooming.
     property real lastZoom: 1.0
@@ -48,48 +62,11 @@ Rectangle {
             flick.contentX = Math.max(0, Math.min(cx * ratio - flick.width / 2, flick.contentWidth - flick.width));
             flick.contentY = Math.max(0, Math.min(cy * ratio - flick.height / 2, flick.contentHeight - flick.height));
         });
-        tileTimer.restart();
     }
 
-    function requestTile() {
-        if (!needsTiles) {
-            tile.source = "";
-            return;
-        }
-        // The visible part of the image, in logical pixels relative to the image.
-        const left = Math.max(0, flick.contentX - canvas.x);
-        const top = Math.max(0, flick.contentY - canvas.y);
-        const right = Math.min(shownWidth, flick.contentX + flick.width - canvas.x);
-        const bottom = Math.min(shownHeight, flick.contentY + flick.height - canvas.y);
-        if (right <= left || bottom <= top) {
-            return;
-        }
-        const dpr = Screen.devicePixelRatio;
-        const clip = Qt.rect(Math.floor(left * dpr), Math.floor(top * dpr), Math.ceil((right - left) * dpr), Math.ceil((bottom - top) * dpr));
-        tile.x = clip.x / dpr;
-        tile.y = clip.y / dpr;
-        tile.width = clip.width / dpr;
-        tile.height = clip.height / dpr;
-        tile.zoom = zoom;
-        tile.source = PeekController.tileSource(Qt.size(Math.round(shownWidth * dpr), Math.round(shownHeight * dpr)), clip);
-    }
 
     color: Kirigami.Theme.backgroundColor
 
-    // Ask for a new tile once zooming, panning or resizing has paused.
-    Timer {
-        id: tileTimer
-        interval: 150
-        onTriggered: root.requestTile()
-    }
-    Connections {
-        target: flick
-        function onContentXChanged() { tileTimer.restart(); }
-        function onContentYChanged() { tileTimer.restart(); }
-        function onWidthChanged() { tileTimer.restart(); }
-        function onHeightChanged() { tileTimer.restart(); }
-    }
-    onNeedsTilesChanged: tileTimer.restart()
 
     Flickable {
         id: flick
@@ -123,13 +100,20 @@ Rectangle {
                 sourceComponent: PeekController.animated ? animatedComponent : staticComponent
             }
 
-            Image {
-                id: tile
-                property real zoom
-                visible: root.needsTiles && status === Image.Ready && zoom === root.zoom
-                asynchronous: true
-                cache: false
-                smooth: true
+            Loader {
+                anchors.fill: parent
+                active: root.wantsDetail
+                sourceComponent: Image {
+                    visible: status === Image.Ready // the base stays visible underneath until then
+                    source: PeekController.url
+                    fillMode: Image.PreserveAspectFit
+                    asynchronous: true
+                    autoTransform: true
+                    smooth: true
+                    mipmap: true // clean downscaling when zoomed back out
+                    // At most 8192 px a side: within every GPU's texture limit and ~45 MP of memory.
+                    sourceSize: root.decodeSize(Qt.size(8192, 8192))
+                }
             }
         }
 
@@ -145,8 +129,8 @@ Rectangle {
             asynchronous: true
             autoTransform: true
             smooth: true
-            // Decoded once, at screen size, never the full resolution of huge photos.
-            sourceSize: Qt.size(Screen.width * Screen.devicePixelRatio, Screen.height * Screen.devicePixelRatio)
+            // Decoded once, at most at screen size: never the full resolution of huge photos.
+            sourceSize: root.decodeSize(Qt.size(Screen.width * Screen.devicePixelRatio, Screen.height * Screen.devicePixelRatio))
         }
     }
 

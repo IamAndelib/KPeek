@@ -24,8 +24,9 @@ and [Sushi](https://gitlab.gnome.org/GNOME/sushi) is to GNOME Files.
 
 ### Light on resources
 
-- **Images** are decoded once at screen size, however many megapixels they have. Zooming in decodes only
-  the visible part at full detail, so a 384-megapixel photo stays around 100–200 MB of memory.
+- **Images** are decoded once at screen size, however many megapixels they have. The first zoom past that
+  loads full detail once (up to 8192 px a side); zooming itself is done by the graphics card, so it is smooth
+  and never flashes. A 24-megapixel photo peaks around 225 MB, a 384-megapixel one stays near 125 MB.
 - **Dolphin's thumbnails** are shown instantly as placeholders while the full image or video loads.
 - **Video** is decoded by the graphics card where possible (VA-API). A large video in a codec the card
   probably can't decode (e.g. 4K AV1) waits for you to press Play instead of loading the processor.
