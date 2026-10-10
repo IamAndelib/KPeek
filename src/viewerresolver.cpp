@@ -1,0 +1,142 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibsriz@proton.me>
+
+#include "viewerresolver.h"
+
+#include <QFile>
+#include <QFileInfo>
+#include <QImageReader>
+#include <QStringDecoder>
+
+namespace
+{
+bool inheritsAny(const QMimeType &mime, const QStringList &types)
+{
+    for (const QString &type : types) {
+        if (mime.inherits(type)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool isOffice(const QMimeType &mime)
+{
+    const QString name = mime.name();
+    if (name.startsWith(QLatin1String("application/vnd.oasis.opendocument."))
+        || name.startsWith(QLatin1String("application/vnd.openxmlformats-officedocument.")) || name.startsWith(QLatin1String("application/vnd.ms-excel"))
+        || name.startsWith(QLatin1String("application/vnd.ms-powerpoint")) || name.startsWith(QLatin1String("application/vnd.ms-word"))) {
+        return true;
+    }
+    return inheritsAny(mime,
+                       {QStringLiteral("application/msword"),
+                        QStringLiteral("application/rtf"),
+                        QStringLiteral("application/vnd.visio"),
+                        QStringLiteral("application/x-iwork-pages-sffpages"),
+                        QStringLiteral("application/x-iwork-numbers-sffnumbers"),
+                        QStringLiteral("application/x-iwork-keynote-sffkey")});
+}
+
+bool isArchive(const QMimeType &mime)
+{
+    return inheritsAny(mime,
+                       {QStringLiteral("application/zip"),
+                        QStringLiteral("application/x-tar"),
+                        QStringLiteral("application/x-compressed-tar"),
+                        QStringLiteral("application/x-bzip2-compressed-tar"),
+                        QStringLiteral("application/x-bzip-compressed-tar"),
+                        QStringLiteral("application/x-xz-compressed-tar"),
+                        QStringLiteral("application/x-zstd-compressed-tar"),
+                        QStringLiteral("application/x-lzma-compressed-tar"),
+                        QStringLiteral("application/x-7z-compressed"),
+                        QStringLiteral("application/x-archive")});
+}
+
+bool isFont(const QMimeType &mime)
+{
+    return mime.name().startsWith(QLatin1String("font/"))
+        || inheritsAny(mime,
+                       {QStringLiteral("application/x-font-ttf"), QStringLiteral("application/x-font-otf"), QStringLiteral("application/vnd.ms-opentype")});
+}
+
+bool isText(const QMimeType &mime)
+{
+    // Many textual formats (JSON, XML, scripts, YAML...) don't inherit text/plain in shared-mime-info.
+    return inheritsAny(mime,
+                       {QStringLiteral("text/plain"),
+                        QStringLiteral("application/json"),
+                        QStringLiteral("application/xml"),
+                        QStringLiteral("application/javascript"),
+                        QStringLiteral("application/x-shellscript"),
+                        QStringLiteral("application/x-yaml"),
+                        QStringLiteral("application/toml"),
+                        QStringLiteral("application/sql"),
+                        QStringLiteral("application/x-desktop"),
+                        QStringLiteral("application/x-subrip")});
+}
+}
+
+QString ViewerResolver::viewerFor(const QMimeType &mime)
+{
+    if (!mime.isValid() || mime.inherits(QStringLiteral("inode/directory"))) {
+        return QStringLiteral("Info");
+    }
+
+    static const QList<QByteArray> imageTypes = QImageReader::supportedMimeTypes();
+    for (const QByteArray &type : imageTypes) {
+        if (mime.inherits(QString::fromLatin1(type))) {
+            return QStringLiteral("Image");
+        }
+    }
+
+    if (mime.inherits(QStringLiteral("application/pdf"))) {
+        return QStringLiteral("Pdf");
+    }
+    // Before archives: OOXML and OpenDocument files are zip containers.
+    if (isOffice(mime)) {
+        return QStringLiteral("Office");
+    }
+    if (mime.name().startsWith(QLatin1String("video/")) || mime.name().startsWith(QLatin1String("audio/"))
+        || mime.inherits(QStringLiteral("application/ogg"))) {
+        return QStringLiteral("Media");
+    }
+    if (isFont(mime)) {
+        return QStringLiteral("Font");
+    }
+    if (isArchive(mime)) {
+        return QStringLiteral("Archive");
+    }
+    if (mime.inherits(QStringLiteral("text/markdown"))) {
+        return QStringLiteral("Markdown");
+    }
+    if (isText(mime)) {
+        return QStringLiteral("Text");
+    }
+    return QStringLiteral("Info");
+}
+
+QString ViewerResolver::viewerForFile(const QString &path, const QMimeType &mime)
+{
+    const QString viewer = viewerFor(mime);
+    if (viewer != QLatin1String("Info") || !QFileInfo(path).isFile()) {
+        return viewer;
+    }
+
+    QFile file(path);
+    if (file.size() > 0 && file.open(QIODevice::ReadOnly) && looksLikeText(file.read(4096))) {
+        return QStringLiteral("Text");
+    }
+    return viewer;
+}
+
+bool ViewerResolver::looksLikeText(const QByteArray &data)
+{
+    if (data.isEmpty() || data.contains('\0')) {
+        return false;
+    }
+    QStringDecoder decoder(QStringDecoder::Utf8);
+    // The sample may end in the middle of a multi-byte character; only judge complete input.
+    const QString decoded = decoder.decode(data);
+    Q_UNUSED(decoded)
+    return !decoder.hasError();
+}

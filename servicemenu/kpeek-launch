@@ -1,0 +1,28 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibsriz@proton.me>
+#
+# Starts KPeek for the Dolphin service menu: an override from the config file
+# (used for development builds), then a native install, then the Flatpak.
+
+APP_ID=io.github.iamandelib.kpeek
+CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/kpeek-launch.conf"
+
+KPEEK_COMMAND=
+# The config may set KPEEK_COMMAND, e.g. KPEEK_COMMAND="distrobox enter dev -- /path/to/build/bin/kpeek"
+[ -r "$CONFIG" ] && . "$CONFIG"
+
+if [ -n "$KPEEK_COMMAND" ]; then
+    exec $KPEEK_COMMAND "$@"
+fi
+for candidate in /usr/bin/kpeek /usr/local/bin/kpeek "$HOME/.local/bin/kpeek"; do
+    [ -x "$candidate" ] && exec "$candidate" "$@"
+done
+if flatpak info "$APP_ID" >/dev/null 2>&1; then
+    exec flatpak run "$APP_ID" "$@"
+fi
+
+if command -v kdialog >/dev/null 2>&1; then
+    kdialog --title KPeek --error "KPeek is not installed. Reinstall the \"KPeek\" service menu from Dolphin (Get New) or install $APP_ID from Flathub."
+fi
+exit 1

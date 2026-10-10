@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Service
+MimeType=all/all;
+X-KDE-ServiceTypes=KonqPopupMenu/Plugin
+X-KDE-Priority=TopLevel
+Actions=peek;
+
+[Desktop Action peek]
+Name=Peek
+Comment=Quickly preview the selected files
+Icon=document-preview
+# @KPEEK_LAUNCH@ is replaced with the absolute launcher path at install time: Plasma's session PATH lacks ~/.local/bin.
+Exec=@KPEEK_LAUNCH@ %F
