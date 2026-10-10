@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
 
 #include "filenavigator.h"
+#include "naturalsort.h"
 
 #include <QDir>
 #include <QFile>
@@ -16,6 +17,7 @@ private Q_SLOTS:
     void init();
     void testSingleFileBrowsesFolder();
     void testNaturalSortFoldersFirst();
+    void testNaturalSortInCLocale();
     void testHiddenFileStillShown();
     void testMultiSelectionBrowsesOnlySelection();
     void testStepWraps();
@@ -61,6 +63,17 @@ void FileNavigatorTest::testNaturalSortFoldersFirst()
                                   urlFor(QStringLiteral("a10.txt")),
                                   urlFor(QStringLiteral("b.txt"))};
     QCOMPARE(FileNavigator::siblings(urlFor(QStringLiteral("b.txt"))), expected);
+}
+
+void FileNavigatorTest::testNaturalSortInCLocale()
+{
+    // Byte order would put "a10" first ('1' < '2') and "B" before "a" (uppercase first).
+    const QLocale previous;
+    QLocale::setDefault(QLocale::c());
+    const QCollator collator = naturalCollator();
+    QLocale::setDefault(previous);
+    QVERIFY(collator.compare(QStringLiteral("a2"), QStringLiteral("a10")) < 0);
+    QVERIFY(collator.compare(QStringLiteral("a"), QStringLiteral("B")) < 0);
 }
 
 void FileNavigatorTest::testHiddenFileStillShown()
