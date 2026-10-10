@@ -20,7 +20,7 @@ jobs:
           kf6-kwindowsystem-devel kf6-karchive-devel kf6-kirigami-devel kf6-syntax-highlighting-devel
           poppler-qt6-devel appstream desktop-file-utils shellcheck reuse
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Configure
         run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=/tmp/prefix
