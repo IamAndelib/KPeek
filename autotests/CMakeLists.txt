@@ -22,6 +22,7 @@ ecm_add_test(pdfdocumenttest.cpp ../src/pdfdocument.cpp
     TEST_NAME pdfdocumenttest
     LINK_LIBRARIES Qt6::Test Qt6::Quick Qt6::Concurrent Poppler::Qt6)
 target_include_directories(pdfdocumenttest PRIVATE ../src)
+set_tests_properties(pdfdocumenttest PROPERTIES ENVIRONMENT "KPEEK_LOW_MEMORY=1;QT_QPA_PLATFORM=offscreen")
 
 ecm_add_test(comicbooktest.cpp ../src/comicbook.cpp
     TEST_NAME comicbooktest

@@ -19,6 +19,7 @@ jobs:
           kf6-kcoreaddons-devel kf6-ki18n-devel kf6-kcrash-devel kf6-kdbusaddons-devel
           kf6-kwindowsystem-devel libarchive-devel dbus-devel qt6-qtquick3d-devel kf6-kirigami-devel kf6-syntax-highlighting-devel
           kf6-qqc2-desktop-style poppler-qt6-devel appstream desktop-file-utils shellcheck reuse
+          libasan libubsan
 
       - uses: actions/checkout@v5
 
@@ -33,6 +34,13 @@ jobs:
 
       - name: Test
         run: ctest --test-dir build --output-on-failure
+
+      # The parsers read untrusted files: run the tests again with AddressSanitizer and UBSan.
+      - name: Test with sanitizers
+        run: |
+          cmake -B build-asan -G Ninja -DCMAKE_BUILD_TYPE=Debug -DECM_ENABLE_SANITIZERS='address;undefined'
+          cmake --build build-asan
+          ASAN_OPTIONS=detect_leaks=0 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 ctest --test-dir build-asan --output-on-failure
 
       - name: Check formatting
         run: |

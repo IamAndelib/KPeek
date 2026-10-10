@@ -21,6 +21,7 @@ private Q_SLOTS:
     void testOtherFormats_data();
     void testOtherFormats();
     void testAbsurdPaths();
+    void testEntryCap();
     void testIncomplete();
 
 private:
@@ -156,6 +157,18 @@ void ArchiveModelTest::testAbsurdPaths()
     QVERIFY(!listing.failed);
     QCOMPARE(listing.entries.size(), 1);
     QCOMPARE(listing.entries.first().path, QStringLiteral("ok.txt"));
+}
+
+void ArchiveModelTest::testEntryCap()
+{
+    // The only memory guard against archives with millions of entries.
+    QStringList files;
+    for (int i = 0; i < ArchiveModel::MaxEntries + 5; ++i) {
+        files.append(QStringLiteral("f%1").arg(i));
+    }
+    const ArchiveListing listing = ArchiveModel::list(makeArchive(QStringLiteral("many.zip"), ARCHIVE_FORMAT_ZIP, ARCHIVE_FILTER_NONE, files));
+    QVERIFY(listing.truncated);
+    QCOMPARE(listing.entries.size(), ArchiveModel::MaxEntries);
 }
 
 void ArchiveModelTest::testIncomplete()

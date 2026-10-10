@@ -76,6 +76,18 @@ void ViewerResolverTest::testLooksLikeText()
 
 void ViewerResolverTest::testViewerForFile()
 {
+    // A FIFO named like a viewable file must never reach a viewer: reading it would block forever,
+    // hanging the resident process and every later preview.
+    {
+        QTemporaryDir fifoDir;
+        for (const char *name : {"pipe.png", "pipe.txt", "pipe.pdf"}) {
+            const QString path = fifoDir.filePath(QString::fromLatin1(name));
+            QCOMPARE(mkfifo(QFile::encodeName(path).constData(), 0600), 0);
+            const QMimeType mime = QMimeDatabase().mimeTypeForUrl(QUrl::fromLocalFile(path));
+            QCOMPARE(ViewerResolver::viewerForFile(QFileInfo(path), mime), QStringLiteral("Info"));
+        }
+    }
+
     QTemporaryDir dir;
     const QMimeType unknown = QMimeDatabase().mimeTypeForName(QStringLiteral("application/octet-stream"));
 
