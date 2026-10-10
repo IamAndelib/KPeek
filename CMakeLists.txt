@@ -30,7 +30,8 @@ ecm_setup_version(${PROJECT_VERSION} VARIABLE_PREFIX KPEEK VERSION_HEADER ${CMAK
 find_package(Qt6 ${QT_MIN_VERSION} REQUIRED COMPONENTS Core Gui Widgets Concurrent Qml Quick QuickControls2)
 qt_standard_project_setup(REQUIRES 6.8)
 
-find_package(KF6 ${KF_MIN_VERSION} REQUIRED COMPONENTS CoreAddons I18n Crash DBusAddons WindowSystem Archive)
+find_package(KF6 ${KF_MIN_VERSION} REQUIRED COMPONENTS CoreAddons I18n Crash DBusAddons WindowSystem)
+find_package(LibArchive REQUIRED)
 find_package(Poppler REQUIRED COMPONENTS Qt6)
 
 # QML modules used only at runtime by the viewers.

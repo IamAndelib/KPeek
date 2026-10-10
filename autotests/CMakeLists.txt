@@ -15,7 +15,7 @@ ecm_add_tests(
 # These classes are QML types compiled into the app, so the tests build their sources directly.
 ecm_add_test(archivemodeltest.cpp ../src/archivemodel.cpp
     TEST_NAME archivemodeltest
-    LINK_LIBRARIES Qt6::Test Qt6::Qml Qt6::Concurrent KF6::Archive KF6::CoreAddons)
+    LINK_LIBRARIES Qt6::Test Qt6::Qml Qt6::Concurrent LibArchive::LibArchive KF6::CoreAddons)
 target_include_directories(archivemodeltest PRIVATE ../src)
 
 ecm_add_test(pdfdocumenttest.cpp ../src/pdfdocument.cpp

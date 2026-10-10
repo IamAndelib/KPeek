@@ -5,66 +5,22 @@
 #include "naturalsort.h"
 #include "workerpool.h"
 
-#include <K7Zip>
-#include <KAr>
-#include <KArchiveDirectory>
-#include <KArchiveFile>
 #include <KFormat>
-#include <KTar>
-#include <KZip>
 
 #include <QCollator>
+#include <QFile>
 #include <QMimeDatabase>
+#include <QSet>
 #include <QtConcurrentRun>
+
+#include <archive.h>
+#include <archive_entry.h>
 
 #include <algorithm>
 #include <numeric>
 
 namespace
 {
-std::unique_ptr<KArchive> archiveFor(const QString &path)
-{
-    const QMimeType mime = QMimeDatabase().mimeTypeForFile(path);
-    if (mime.inherits(QStringLiteral("application/zip"))) {
-        return std::make_unique<KZip>(path);
-    }
-    if (mime.inherits(QStringLiteral("application/x-7z-compressed"))) {
-        return std::make_unique<K7Zip>(path);
-    }
-    if (mime.inherits(QStringLiteral("application/x-archive"))) {
-        return std::make_unique<KAr>(path);
-    }
-    // KTar picks the decompression filter (gz, bz2, xz, zstd, lzma) from the file itself.
-    return std::make_unique<KTar>(path);
-}
-
-void collect(const KArchiveDirectory *dir, const QString &prefix, ArchiveListing &listing, const std::atomic_bool *cancelled, const KFormat &format)
-{
-    const QStringList names = dir->entries();
-    for (const QString &name : names) {
-        if (cancelled && *cancelled) {
-            return;
-        }
-        if (listing.entries.size() >= ArchiveModel::MaxEntries) {
-            listing.truncated = true;
-            return;
-        }
-        const KArchiveEntry *entry = dir->entry(name);
-        ArchiveEntry item;
-        item.path = prefix + name;
-        item.isDir = entry->isDirectory();
-        listing.entries.append(item);
-        if (item.isDir) {
-            collect(static_cast<const KArchiveDirectory *>(entry), item.path + QLatin1Char('/'), listing, cancelled, format);
-        } else {
-            const qint64 size = static_cast<const KArchiveFile *>(entry)->size();
-            listing.entries.last().sizeText = format.formatByteSize(size);
-            listing.totalSize += size;
-            ++listing.fileCount;
-        }
-    }
-}
-
 void sortListing(QList<ArchiveEntry> &entries)
 {
     struct Key {
@@ -137,19 +93,75 @@ ArchiveModel::~ArchiveModel()
 ArchiveListing ArchiveModel::list(const QString &path, const std::atomic_bool *cancelled)
 {
     ArchiveListing listing;
-    std::unique_ptr<KArchive> archive = archiveFor(path);
-    if (!archive->open(QIODevice::ReadOnly)) {
+    // libarchive streams through the entry headers (skipping the data), so this needs no in-memory
+    // tree and can stop between entries. It reads zip, 7z, rar, tar.*, iso, cpio, cab, ar (deb), rpm, …
+    const std::unique_ptr<archive, decltype(&archive_read_free)> reader(archive_read_new(), archive_read_free);
+    archive_read_support_filter_all(reader.get());
+    archive_read_support_format_all(reader.get());
+    if (archive_read_open_filename(reader.get(), QFile::encodeName(path).constData(), 64 * 1024) != ARCHIVE_OK) {
         listing.failed = true;
         return listing;
     }
-    collect(archive->directory(), QString(), listing, cancelled, KFormat());
-    if (cancelled && *cancelled) {
-        return {};
+
+    const KFormat format;
+    QSet<QString> seen;
+    // Adds an entry once; archives may repeat paths, and many zips have no entries for their folders.
+    const auto add = [&](const QString &entryPath, bool isDir, qint64 size) {
+        if (seen.contains(entryPath)) {
+            return true;
+        }
+        if (listing.entries.size() >= MaxEntries) {
+            listing.truncated = true;
+            return false;
+        }
+        seen.insert(entryPath);
+        ArchiveEntry item;
+        item.path = entryPath;
+        item.isDir = isDir;
+        if (!isDir) {
+            item.sizeText = format.formatByteSize(size);
+            listing.totalSize += size;
+            ++listing.fileCount;
+        }
+        listing.entries.append(item);
+        return true;
+    };
+
+    archive_entry *entry = nullptr;
+    int result = ARCHIVE_OK;
+    while ((result = archive_read_next_header(reader.get(), &entry)) == ARCHIVE_OK || result == ARCHIVE_WARN) {
+        if (cancelled && *cancelled) {
+            return {};
+        }
+        const char *utf8 = archive_entry_pathname_utf8(entry);
+        QString entryPath = utf8 ? QString::fromUtf8(utf8) : QFile::decodeName(archive_entry_pathname(entry));
+        while (entryPath.startsWith(QLatin1String("./"))) {
+            entryPath.remove(0, 2);
+        }
+        while (entryPath.endsWith(QLatin1Char('/'))) {
+            entryPath.chop(1);
+        }
+        if (entryPath.isEmpty() || entryPath == QLatin1String(".")) {
+            continue;
+        }
+        bool ok = true;
+        for (qsizetype slash = entryPath.indexOf(QLatin1Char('/')); ok && slash > 0; slash = entryPath.indexOf(QLatin1Char('/'), slash + 1)) {
+            ok = add(entryPath.left(slash), true, 0);
+        }
+        const bool isDir = archive_entry_filetype(entry) == AE_IFDIR;
+        if (!ok || !add(entryPath, isDir, isDir ? 0 : archive_entry_size(entry))) {
+            break;
+        }
+        archive_read_data_skip(reader.get());
+    }
+    if (result == ARCHIVE_FATAL && listing.entries.isEmpty()) {
+        listing.failed = true; // corrupt, encrypted headers, or not an archive after all
+        return listing;
     }
 
     QMimeDatabase mimeDatabase;
-    for (ArchiveEntry &entry : listing.entries) {
-        entry.iconName = entry.isDir ? QStringLiteral("folder") : mimeDatabase.mimeTypeForFile(entry.path, QMimeDatabase::MatchExtension).iconName();
+    for (ArchiveEntry &item : listing.entries) {
+        item.iconName = item.isDir ? QStringLiteral("folder") : mimeDatabase.mimeTypeForFile(item.path, QMimeDatabase::MatchExtension).iconName();
     }
     sortListing(listing.entries);
     return listing;

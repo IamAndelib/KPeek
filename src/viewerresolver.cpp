@@ -47,7 +47,18 @@ bool isArchive(const QMimeType &mime)
                         QStringLiteral("application/x-xz-compressed-tar"),
                         QStringLiteral("application/x-zstd-compressed-tar"),
                         QStringLiteral("application/x-lzma-compressed-tar"),
+                        QStringLiteral("application/x-lz4-compressed-tar"),
+                        QStringLiteral("application/x-lrzip-compressed-tar"),
+                        QStringLiteral("application/x-tarz"),
                         QStringLiteral("application/x-7z-compressed"),
+                        QStringLiteral("application/vnd.rar"),
+                        QStringLiteral("application/x-cd-image"),
+                        QStringLiteral("application/vnd.debian.binary-package"),
+                        QStringLiteral("application/x-rpm"),
+                        QStringLiteral("application/vnd.ms-cab-compressed"),
+                        QStringLiteral("application/x-cpio"),
+                        QStringLiteral("application/x-xar"),
+                        QStringLiteral("application/x-lha"),
                         QStringLiteral("application/x-archive")});
 }
 

@@ -54,7 +54,7 @@ target_link_libraries(kpeek PRIVATE
     Qt6::Widgets
     Qt6::Concurrent
     Poppler::Qt6
-    KF6::Archive
+    LibArchive::LibArchive
     KF6::CoreAddons
     KF6::I18n
     KF6::I18nQml
