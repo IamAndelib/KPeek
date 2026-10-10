@@ -8,9 +8,26 @@ import QtMultimedia
 import org.kde.kirigami as Kirigami
 import io.github.iamandelib.kpeek
 
-// Video and audio, played as soon as the preview opens.
+/**
+ * Video and audio. Decoding runs on the GPU where it can (QtMultimedia's FFmpeg backend uses VA-API),
+ * so previews normally just play. Dolphin's cached thumbnail stands in as a poster until the first frame.
+ *
+ * A large video in a codec GPUs commonly can't decode (e.g. 4K AV1) would be decoded on the CPU, which
+ * is heavy for a quick look: it waits behind a Play button instead of starting by itself.
+ */
 Rectangle {
     id: root
+
+    readonly property bool hasThumbnail: PeekController.thumbnail.toString() !== ""
+    // Whether this file starts by itself; decided once its metadata has loaded.
+    property bool waitsForPlay: false
+
+    function heavyForCpu() {
+        const resolution = player.metaData.value(MediaMetaData.Resolution);
+        const codec = player.metaData.value(MediaMetaData.VideoCodec);
+        const large = resolution !== undefined && resolution.width * resolution.height > 1920 * 1080;
+        return player.hasVideo && large && codec !== MediaFormat.VideoCodec.H264 && codec !== MediaFormat.VideoCodec.H265;
+    }
 
     function formatTime(ms) {
         const total = Math.floor(ms / 1000);
@@ -40,7 +57,14 @@ Rectangle {
         audioOutput: AudioOutput {
             id: audio
         }
-        autoPlay: true
+        onMediaStatusChanged: {
+            if (mediaStatus === MediaPlayer.LoadedMedia) {
+                root.waitsForPlay = root.heavyForCpu();
+                if (!root.waitsForPlay) {
+                    play();
+                }
+            }
+        }
     }
 
     ColumnLayout {
@@ -57,6 +81,32 @@ Rectangle {
                 visible: player.hasVideo
             }
 
+            // Poster until the first frame, so the preview never opens on a black rectangle.
+            Image {
+                anchors.fill: parent
+                visible: root.hasThumbnail && player.position === 0 && (player.hasVideo || player.mediaStatus === MediaPlayer.LoadingMedia)
+                source: PeekController.thumbnail
+                fillMode: Image.PreserveAspectFit
+                asynchronous: true
+            }
+
+            QQC2.RoundButton {
+                anchors.centerIn: parent
+                z: 1 // above the click-to-pause area
+                visible: root.waitsForPlay && player.playbackState !== MediaPlayer.PlayingState && player.position === 0
+                width: Kirigami.Units.gridUnit * 4
+                height: width
+                icon.name: "media-playback-start"
+                icon.width: Kirigami.Units.iconSizes.large
+                icon.height: Kirigami.Units.iconSizes.large
+                text: i18nc("@action:button", "Play")
+                display: QQC2.AbstractButton.IconOnly
+                focusPolicy: Qt.NoFocus
+                onClicked: player.play()
+                QQC2.ToolTip.text: i18nc("@info:tooltip", "Large video that your graphics card may not decode: playing it uses the processor")
+                QQC2.ToolTip.visible: hovered
+            }
+
             MouseArea {
                 anchors.fill: parent
                 enabled: player.hasVideo
@@ -71,7 +121,8 @@ Rectangle {
                 spacing: Kirigami.Units.largeSpacing
 
                 Kirigami.Icon {
-                    source: PeekController.iconName
+                    // Cover art from the thumbnail cache when there is one.
+                    source: root.hasThumbnail ? PeekController.thumbnail : PeekController.iconName
                     fallback: "audio-x-generic"
                     Layout.alignment: Qt.AlignHCenter
                     Layout.preferredWidth: Kirigami.Units.iconSizes.enormous

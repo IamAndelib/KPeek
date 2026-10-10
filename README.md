@@ -22,6 +22,14 @@ and [Sushi](https://gitlab.gnome.org/GNOME/sushi) is to GNOME Files.
 | Fonts | Specimen at several sizes |
 | Folders and everything else | Icon, type, size and modification date |
 
+### Light on resources
+
+- **Images** are decoded once at screen size, however many megapixels they have. Zooming in decodes only
+  the visible part at full detail, so a 384-megapixel photo stays around 100–200 MB of memory.
+- **Dolphin's thumbnails** are shown instantly as placeholders while the full image or video loads.
+- **Video** is decoded by the graphics card where possible (VA-API). A large video in a codec the card
+  probably can't decode (e.g. 4K AV1) waits for you to press Play instead of loading the processor.
+
 ### Keys and mouse
 
 With several files selected, KPeek moves through those; with one, through its whole folder.

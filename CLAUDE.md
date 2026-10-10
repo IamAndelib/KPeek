@@ -11,6 +11,10 @@ Read README.md first; it covers the features, the Dolphin integration (service m
 - Shared interaction lives in `src/qml/ViewerInput.qml` (Ctrl+wheel zoom, Ctrl+drag, scroll keys) and the
   header zoom controls in `Main.qml`. Viewers take part by exposing `zoom` and `scrollTarget`; don't add
   per-viewer controls for these. The plain wheel only scrolls (never switches files: documents need it).
+- Big media stays cheap: images decode once at screen size, plus one detail tile for the visible area when
+  zoomed in (`src/imagetiles.cpp`); Dolphin's thumbnail cache (`src/thumbnailcache.cpp`) is the instant
+  placeholder; video decodes on the GPU via VA-API. Never decode a whole image at zoomed resolution.
+  The Flatpak manifest must grant `--filesystem=xdg-cache/thumbnails:ro` for the thumbnail cache.
 - Background work goes on `workerPool()` (`src/workerpool.h`), never `QThreadPool::globalInstance()`.
 - Never set a KSyntaxHighlighting `SyntaxHighlighter.textEdit` to null: it crashes. Swap components instead.
 - Qt on Wayland reports wheel events (even from a real mouse) with a "touchpad"-typed device: any
