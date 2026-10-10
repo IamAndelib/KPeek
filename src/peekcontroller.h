@@ -41,6 +41,10 @@ class PeekController : public QObject
     Q_PROPERTY(int count READ count NOTIFY currentChanged)
     Q_PROPERTY(QSize imageSize READ imageSize NOTIFY currentChanged)
     Q_PROPERTY(bool animated READ animated NOTIFY currentChanged)
+    /// Dolphin's cached thumbnail of the file, shown instantly while the real content loads; may be empty.
+    Q_PROPERTY(QUrl thumbnail READ thumbnail NOTIFY currentChanged)
+    /// Whether zooming in may decode detail tiles (see ImageTiles::cheapToTile()).
+    Q_PROPERTY(bool tileable READ tileable NOTIFY currentChanged)
 
 public:
     // Not default-constructible on purpose: QML must use create() and get the one instance from main().
@@ -67,6 +71,11 @@ public:
     int count() const;
     QSize imageSize() const;
     bool animated() const;
+    QUrl thumbnail() const;
+    bool tileable() const;
+
+    /// Image source for the @p clip part of the current image shown at @p scaledSize (device pixels).
+    Q_INVOKABLE QString tileSource(const QSize &scaledSize, const QRect &clip) const;
 
 public Q_SLOTS:
     void next();
@@ -94,4 +103,6 @@ private:
     QDateTime m_modified;
     QSize m_imageSize; ///< natural size, EXIF orientation applied; only set for the image viewer
     bool m_animated = false;
+    QUrl m_thumbnail;
+    bool m_tileable = false;
 };

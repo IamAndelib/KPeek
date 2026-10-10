@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
 
+#include "imagetiles.h"
 #include "kpeek-version.h"
 #include "pdfdocument.h"
 #include "peekcontroller.h"
@@ -78,6 +79,7 @@ int main(int argc, char *argv[])
     QQmlApplicationEngine engine;
     KLocalization::setupLocalizedContext(&engine);
     engine.addImageProvider(QLatin1String(PdfPageProvider::Id), new PdfPageProvider);
+    engine.addImageProvider(QLatin1String(ImageTiles::ProviderId), new TileProvider);
     engine.loadFromModule("io.github.iamandelib.kpeek", "Main");
     auto *window = engine.rootObjects().isEmpty() ? nullptr : qobject_cast<QQuickWindow *>(engine.rootObjects().constFirst());
     if (!window) {

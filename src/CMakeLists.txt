@@ -5,6 +5,7 @@
 add_library(kpeekcore STATIC
     filenavigator.cpp filenavigator.h
     viewerresolver.cpp viewerresolver.h
+    thumbnailcache.cpp thumbnailcache.h
 )
 target_include_directories(kpeekcore PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(kpeekcore PUBLIC Qt6::Core Qt6::Gui)
@@ -17,6 +18,7 @@ add_executable(kpeek
     officeconverter.cpp officeconverter.h
     archivemodel.cpp archivemodel.h
     workerpool.h
+    imagetiles.cpp imagetiles.h
 )
 
 qt_add_qml_module(kpeek

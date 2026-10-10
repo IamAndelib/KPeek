@@ -8,6 +8,7 @@ find_package(Qt6Test ${QT_MIN_VERSION} REQUIRED)
 ecm_add_tests(
     filenavigatortest.cpp
     viewerresolvertest.cpp
+    thumbnailcachetest.cpp
     LINK_LIBRARIES kpeekcore Qt6::Test
 )
 
@@ -16,6 +17,11 @@ ecm_add_test(archivemodeltest.cpp ../src/archivemodel.cpp
     TEST_NAME archivemodeltest
     LINK_LIBRARIES Qt6::Test Qt6::Qml Qt6::Concurrent KF6::Archive KF6::CoreAddons)
 target_include_directories(archivemodeltest PRIVATE ../src)
+
+ecm_add_test(imagetilestest.cpp ../src/imagetiles.cpp
+    TEST_NAME imagetilestest
+    LINK_LIBRARIES Qt6::Test Qt6::Quick)
+target_include_directories(imagetilestest PRIVATE ../src)
 
 ecm_add_test(textloadertest.cpp ../src/textloader.cpp
     TEST_NAME textloadertest
