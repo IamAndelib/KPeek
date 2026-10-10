@@ -21,3 +21,10 @@ ecm_add_test(textloadertest.cpp ../src/textloader.cpp
     TEST_NAME textloadertest
     LINK_LIBRARIES Qt6::Test Qt6::Qml)
 target_include_directories(textloadertest PRIVATE ../src)
+
+# QML tests (autotests/qml/tst_*.qml), offscreen.
+find_package(Qt6QuickTest ${QT_MIN_VERSION} REQUIRED)
+add_executable(qmltests qmltests.cpp)
+target_link_libraries(qmltests Qt6::QuickTest Qt6::QuickControls2 Qt6::Widgets)
+add_test(NAME qmltests COMMAND qmltests -input ${CMAKE_CURRENT_SOURCE_DIR}/qml)
+set_tests_properties(qmltests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")

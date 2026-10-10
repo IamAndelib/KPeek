@@ -18,7 +18,7 @@ jobs:
           qt6-qtbase-devel qt6-qtdeclarative-devel qt6-qtmultimedia-devel qt6-qtsvg-devel
           kf6-kcoreaddons-devel kf6-ki18n-devel kf6-kcrash-devel kf6-kdbusaddons-devel
           kf6-kwindowsystem-devel kf6-karchive-devel kf6-kirigami-devel kf6-syntax-highlighting-devel
-          poppler-qt6-devel appstream desktop-file-utils shellcheck reuse
+          kf6-qqc2-desktop-style poppler-qt6-devel appstream desktop-file-utils shellcheck reuse
 
       - uses: actions/checkout@v5
 

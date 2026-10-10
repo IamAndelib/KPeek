@@ -68,10 +68,23 @@ QQC2.ApplicationWindow {
                 opacity: 0.7
             }
 
-            // Zoom controls, for every viewer where zooming means something.
+            // Zoom controls, for every viewer where zooming means something. Reset sits on the left so
+            // that when it appears, the title and position shift instead of the -/+ buttons (rapid
+            // clicks on + must never land on reset).
             RowLayout {
                 visible: input.zoomable
                 spacing: 0
+
+                QQC2.ToolButton {
+                    icon.name: "edit-reset"
+                    display: QQC2.AbstractButton.IconOnly
+                    text: i18nc("@action:button", "Reset Zoom (Ctrl+0)")
+                    visible: Math.abs(input.zoom - 1) > 0.001
+                    focusPolicy: Qt.NoFocus
+                    onClicked: input.zoom = 1
+                    QQC2.ToolTip.text: text
+                    QQC2.ToolTip.visible: hovered
+                }
 
                 QQC2.ToolButton {
                     icon.name: "zoom-out"
@@ -87,7 +100,14 @@ QQC2.ApplicationWindow {
                     text: i18nc("@info zoom level", "%1%", Math.round(input.zoom * 100))
                     horizontalAlignment: Text.AlignHCenter
                     font.features: { "tnum": 1 }
-                    Layout.minimumWidth: Kirigami.Units.gridUnit * 3
+                    // Fixed width: "75%" and "400%" mustn't move the + button either.
+                    Layout.preferredWidth: zoomLabelMetrics.advanceWidth + Kirigami.Units.smallSpacing * 2
+
+                    TextMetrics {
+                        id: zoomLabelMetrics
+                        font: parent.font
+                        text: i18nc("@info zoom level", "%1%", 400)
+                    }
                 }
                 QQC2.ToolButton {
                     icon.name: "zoom-in"
@@ -96,16 +116,6 @@ QQC2.ApplicationWindow {
                     enabled: input.zoom < input.maxZoom
                     focusPolicy: Qt.NoFocus
                     onClicked: input.zoomBy(1)
-                    QQC2.ToolTip.text: text
-                    QQC2.ToolTip.visible: hovered
-                }
-                QQC2.ToolButton {
-                    icon.name: "zoom-original"
-                    display: QQC2.AbstractButton.IconOnly
-                    text: i18nc("@action:button", "Reset Zoom (Ctrl+0)")
-                    visible: Math.abs(input.zoom - 1) > 0.001
-                    focusPolicy: Qt.NoFocus
-                    onClicked: input.zoom = 1
                     QQC2.ToolTip.text: text
                     QQC2.ToolTip.visible: hovered
                 }

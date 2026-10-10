@@ -81,7 +81,8 @@ Bug reports and pull requests are welcome on [GitHub](https://github.com/IamAnde
 
 - **Style:** KDE's [coding style](https://community.kde.org/Policies/Frameworks_Coding_Style), enforced by clang-format.
   Run `cmake --build build --target clang-format` before committing; the pre-commit hook that CMake installs checks it.
-- **Tests:** add or update a test in `autotests/` for logic changes, and keep `ctest --test-dir build` green.
+- **Tests:** add or update a test in `autotests/` for logic changes (C++ with QtTest, UI behaviour as
+  `autotests/qml/tst_*.qml`), and keep `ctest --test-dir build` green.
 - **Layout:** `src/` holds the C++ backend, with `src/qml/viewers/` holding one QML file per preview type. A new
   preview type is a `XxxViewer.qml` plus a MIME rule in `src/viewerresolver.cpp`. Viewers take part in
   zoom, drag and keyboard scrolling by exposing `zoom` and `scrollTarget` (see `src/qml/ViewerInput.qml`).
