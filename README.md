@@ -22,16 +22,19 @@ and [Sushi](https://gitlab.gnome.org/GNOME/sushi) is to GNOME Files.
 | Fonts | Specimen at several sizes |
 | Folders and everything else | Icon, type, size and modification date |
 
-### Keys
+### Keys and mouse
 
-| Key | Action |
+With several files selected, KPeek moves through those; with one, through its whole folder.
+
+| Input | Action |
 |---|---|
-| <kbd>←</kbd> <kbd>→</kbd> | Previous / next file. With several files selected, KPeek cycles through those; with one, through its folder. |
-| <kbd>↑</kbd> <kbd>↓</kbd> <kbd>PgUp</kbd> <kbd>PgDn</kbd> | Scroll the document |
+| <kbd>←</kbd> <kbd>→</kbd> | Previous / next file |
+| Mouse wheel, <kbd>↑</kbd> <kbd>↓</kbd> <kbd>PgUp</kbd> <kbd>PgDn</kbd> <kbd>Home</kbd> <kbd>End</kbd> | Scroll |
+| <kbd>Ctrl</kbd>+<kbd>+</kbd> <kbd>Ctrl</kbd>+<kbd>−</kbd> <kbd>Ctrl</kbd>+<kbd>0</kbd>, <kbd>Ctrl</kbd>+wheel | Zoom in, out, reset (images, PDFs, documents, text, fonts). The header shows the zoom level, with zoom buttons and a reset button. |
+| <kbd>Ctrl</kbd>+drag | Grab and move the content; zoomed images also pan with a plain drag |
 | <kbd>Enter</kbd> | Open in the default application |
 | <kbd>Meta</kbd>+<kbd>Space</kbd>, <kbd>Space</kbd>, <kbd>Esc</kbd> | Close |
 | <kbd>K</kbd> | Play/pause media |
-| <kbd>+</kbd> <kbd>−</kbd> | Zoom PDFs and documents |
 
 ## How it integrates with Dolphin
 
@@ -68,12 +71,29 @@ scripts/dev-install-servicemenu.sh          # adds "Peek" to Dolphin, running ./
 scripts/dev-install-servicemenu.sh --remove # undo
 ```
 
-Then bind the shortcut as described above and restart Dolphin. After rebuilding, run `pkill -f build/bin/kpeek`,
-because the resident instance keeps running the old binary.
+Then bind the shortcut as described above and restart Dolphin. After rebuilding, run `pkill -x kpeek`,
+because the resident instance keeps running the old binary. Set `QT_FORCE_STDERR_LOGGING=1` to see Qt's
+messages in the terminal instead of the system journal.
+
+## Contributing
+
+Bug reports and pull requests are welcome on [GitHub](https://github.com/IamAndelib/KPeek).
+
+- **Style:** KDE's [coding style](https://community.kde.org/Policies/Frameworks_Coding_Style), enforced by clang-format.
+  Run `cmake --build build --target clang-format` before committing; the pre-commit hook that CMake installs checks it.
+- **Tests:** add or update a test in `autotests/` for logic changes, and keep `ctest --test-dir build` green.
+- **Layout:** `src/` holds the C++ backend, with `src/qml/viewers/` holding one QML file per preview type. A new
+  preview type is a `XxxViewer.qml` plus a MIME rule in `src/viewerresolver.cpp`. Viewers take part in
+  zoom, drag and keyboard scrolling by exposing `zoom` and `scrollTarget` (see `src/qml/ViewerInput.qml`).
+- **Licensing:** the project follows [REUSE](https://reuse.software/): new files need SPDX headers (`reuse lint` checks).
+- **CI:** every push builds and tests on Fedora; `.github/workflows/ci.yml` lists the exact dependencies.
+
+Please follow the [KDE Community Code of Conduct](https://kde.org/code-of-conduct/).
 
 ## Roadmap
 
 - [x] Image, PDF, office, media, text/code, Markdown, archive and font viewers
+- [x] Universal zoom and grab-to-pan
 - [ ] Polish: window resizes to fit images, pin the window size, settings
 - [ ] Flatpak on Flathub
 - [ ] One-click install from Dolphin's *Get New → Dolphin Service Menus* (KDE Store), including the shortcut setup
