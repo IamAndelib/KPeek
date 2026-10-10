@@ -41,6 +41,9 @@ qt_add_qml_module(kpeek
         qml/viewers/TextViewer.qml
 )
 
+set_source_files_properties(sc-apps-${KPEEK_APP_ID}.svg PROPERTIES QT_RESOURCE_ALIAS icon.svg)
+qt_add_resources(kpeek "icon" PREFIX "/" FILES sc-apps-${KPEEK_APP_ID}.svg)
+
 target_include_directories(kpeek PRIVATE ${CMAKE_BINARY_DIR})
 target_compile_definitions(kpeek PRIVATE KPEEK_APP_ID="${KPEEK_APP_ID}")
 target_link_libraries(kpeek PRIVATE

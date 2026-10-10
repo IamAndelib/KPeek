@@ -16,6 +16,7 @@
 #include <QCommandLineParser>
 #include <QDeadlineTimer>
 #include <QDir>
+#include <QIcon>
 #include <QQmlApplicationEngine>
 #include <QQuickStyle>
 #include <QQuickWindow>
@@ -55,6 +56,9 @@ int main(int argc, char *argv[])
     about.setDesktopFileName(QStringLiteral(KPEEK_APP_ID));
     KAboutData::setApplicationData(about);
     KCrash::initialize();
+    // An installed theme icon wins; otherwise the copy built into the binary, so even an uninstalled
+    // build (or a desktop without our .desktop file) shows the right icon in the taskbar.
+    app.setWindowIcon(QIcon::fromTheme(QStringLiteral(KPEEK_APP_ID), QIcon(QStringLiteral(":/icon.svg"))));
 
     if (qEnvironmentVariableIsEmpty("QT_QUICK_CONTROLS_STYLE")) {
         QQuickStyle::setStyle(QStringLiteral("org.kde.desktop"));
