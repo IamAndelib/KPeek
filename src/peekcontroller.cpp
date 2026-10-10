@@ -164,7 +164,10 @@ void PeekController::updateCurrent()
     m_isFolder = info.isDir();
     m_modified = info.lastModified();
 
-    m_thumbnail = m_viewer == QLatin1String("Image") || m_viewer == QLatin1String("Media") ? ThumbnailCache::find(info.absoluteFilePath()) : QUrl();
+    // Shown while images and video load, and in place of the icon for files without a viewer.
+    const bool wantsThumbnail =
+        m_viewer == QLatin1String("Image") || m_viewer == QLatin1String("Media") || (m_viewer == QLatin1String("Info") && info.isFile());
+    m_thumbnail = wantsThumbnail ? ThumbnailCache::find(info.absoluteFilePath()) : QUrl();
     m_imageSize = {};
     m_animated = false;
     if (m_viewer == QLatin1String("Image")) {

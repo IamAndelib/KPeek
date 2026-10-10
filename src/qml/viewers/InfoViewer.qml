@@ -7,8 +7,11 @@ import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import io.github.iamandelib.kpeek
 
-// Fallback for folders and files without a dedicated viewer: a summary card.
+// Fallback for folders and files without a dedicated viewer: a summary card. When Dolphin has made a
+// thumbnail (camera RAW, EPUB, Blender, Krita, …), it is shown instead of the generic icon.
 Rectangle {
+    id: root
+
     color: Kirigami.Theme.backgroundColor
 
     ColumnLayout {
@@ -16,7 +19,20 @@ Rectangle {
         width: Math.min(parent.width - Kirigami.Units.gridUnit * 4, Kirigami.Units.gridUnit * 24)
         spacing: Kirigami.Units.largeSpacing
 
+        Image {
+            id: thumbnail
+            visible: status === Image.Ready
+            source: PeekController.thumbnail
+            fillMode: Image.PreserveAspectFit
+            asynchronous: true
+            smooth: true
+            Layout.alignment: Qt.AlignHCenter
+            Layout.preferredWidth: Math.min(implicitWidth, root.width * 0.6)
+            Layout.preferredHeight: Math.min(implicitHeight, root.height * 0.5)
+        }
+
         Kirigami.Icon {
+            visible: !thumbnail.visible
             source: PeekController.iconName
             fallback: PeekController.isFolder ? "folder" : "unknown"
             Layout.alignment: Qt.AlignHCenter

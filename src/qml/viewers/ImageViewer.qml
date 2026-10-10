@@ -167,10 +167,24 @@ Rectangle {
         running: base.item?.status === Image.Loading && PeekController.thumbnail.toString() === ""
     }
 
+    // A file that can't be decoded here (e.g. a camera RAW format this system lacks a decoder for)
+    // still gets Dolphin's thumbnail if there is one; the error message is the last resort.
+    Image {
+        id: fallback
+        anchors.centerIn: parent
+        width: Math.min(implicitWidth, parent.width - Kirigami.Units.gridUnit * 2)
+        height: Math.min(implicitHeight, parent.height - Kirigami.Units.gridUnit * 2)
+        visible: base.item?.status === Image.Error && status === Image.Ready
+        source: base.item?.status === Image.Error ? PeekController.thumbnail : ""
+        fillMode: Image.PreserveAspectFit
+        asynchronous: true
+        smooth: true
+    }
+
     Kirigami.PlaceholderMessage {
         anchors.centerIn: parent
         width: parent.width - Kirigami.Units.gridUnit * 4
-        visible: base.item?.status === Image.Error
+        visible: base.item?.status === Image.Error && !fallback.visible && fallback.status !== Image.Loading
         icon.name: "image-missing"
         text: i18nc("@info", "This image could not be displayed")
     }
