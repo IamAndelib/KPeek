@@ -22,7 +22,7 @@ void TextLoader::setUrl(const QUrl &url)
     QFile file(url.toLocalFile());
     m_failed = !file.open(QIODevice::ReadOnly);
     m_truncated = !m_failed && file.size() > MaxBytes;
-    m_text = m_failed ? QString() : decode(file.read(MaxBytes), !m_truncated);
+    m_text = m_failed ? QString() : breakLongLines(decode(file.read(MaxBytes), !m_truncated));
     Q_EMIT loaded();
 }
 
@@ -67,6 +67,28 @@ QString TextLoader::decode(const QByteArray &data, bool complete)
     // Not "System": that is UTF-8 on every modern system and would just repeat the failure.
     QStringDecoder latin1(QStringDecoder::Latin1);
     return latin1.decode(data);
+}
+
+QString TextLoader::breakLongLines(const QString &text)
+{
+    QString result;
+    qsizetype lineStart = 0;
+    qsizetype copied = 0;
+    for (qsizetype i = 0; i < text.size(); ++i) {
+        if (text.at(i) == QLatin1Char('\n')) {
+            lineStart = i + 1;
+        } else if (i - lineStart == MaxLineChars) {
+            if (result.isEmpty()) {
+                result.reserve(text.size() + text.size() / MaxLineChars);
+            }
+            result.append(QStringView(text).sliced(copied, i - copied)).append(QLatin1Char('\n'));
+            copied = lineStart = i;
+        }
+    }
+    if (copied == 0) {
+        return text; // the common case: nothing to break, no copy
+    }
+    return result.append(QStringView(text).sliced(copied));
 }
 
 #include "moc_textloader.cpp"

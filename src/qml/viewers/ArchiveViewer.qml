@@ -26,7 +26,9 @@ Rectangle {
         QQC2.Label {
             Layout.fillWidth: true
             Layout.margins: Kirigami.Units.largeSpacing
-            text: archive.truncated
+            text: archive.incomplete
+                ? i18ncp("@info archive summary", "The archive is damaged or incomplete; %1 file could be read", "The archive is damaged or incomplete; %1 files could be read", archive.fileCount)
+                : archive.truncated
                 ? i18ncp("@info archive summary", "First %1 entry listed; the archive has more", "First %1 entries listed; the archive has more", archive.maxEntries)
                 : i18ncp("@info archive summary", "%1 file, %2 uncompressed", "%1 files, %2 uncompressed", archive.fileCount, archive.totalSizeText)
             opacity: 0.7
@@ -70,13 +72,15 @@ Rectangle {
                     QQC2.Label {
                         id: nameLabel
                         text: row.name
+                        textFormat: Text.PlainText // entry names come from the archive: never render them as markup
                         elide: Text.ElideMiddle
                         Layout.fillWidth: true
 
                         HoverHandler {
                             id: hover
                         }
-                        QQC2.ToolTip.text: row.path
+                        // The attached ToolTip has no textFormat; escaping keeps it from reading markup.
+                        QQC2.ToolTip.text: row.path.replace(/&/g, "&amp;").replace(/</g, "&lt;")
                         QQC2.ToolTip.visible: hover.hovered && nameLabel.truncated
                     }
                     QQC2.Label {

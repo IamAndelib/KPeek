@@ -2,16 +2,16 @@
 // SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
 
 #include "pdfdocument.h"
+#include "imageresponse.h"
 #include "systeminfo.h"
 #include "workerpool.h"
 
 #include <poppler-qt6.h>
 
 #include <QCache>
+#include <QDebug>
 #include <QFileInfo>
 #include <QMutex>
-#include <QQuickTextureFactory>
-#include <QRunnable>
 #include <QtConcurrentRun>
 
 #include <atomic>
@@ -24,10 +24,6 @@ namespace
 // through one lock; recently used documents stay open to make scrolling cheap.
 QMutex s_mutex;
 QCache<QString, Poppler::Document> s_documents(isLowMemorySystem() ? 2 : 4);
-
-// Upper bound for one rendered page, however far the user zooms in: ~256 MB as ARGB32 (~96 MB on
-// low-memory machines).
-const double MaxPagePixels = isLowMemorySystem() ? 24e6 : 64e6;
 
 /// The cached document for @p key. Call with s_mutex held. Sets @p locked for password-protected files.
 Poppler::Document *documentLocked(const QString &key, bool *locked = nullptr)
@@ -54,62 +50,29 @@ Poppler::Document *documentLocked(const QString &key, bool *locked = nullptr)
     return raw;
 }
 
-class PageResponse : public QQuickImageResponse, public QRunnable
+/// Renders @p pageNumber at about @p width pixels wide (within maxPagePixels()).
+QImage renderPage(const QString &key, int pageNumber, int width, const std::atomic_bool &cancelled)
 {
-public:
-    PageResponse(const QString &key, int page, const QSize &requestedSize)
-        : m_key(key)
-        , m_page(page)
-        , m_requestedSize(requestedSize)
-    {
-        setAutoDelete(false);
+    QMutexLocker locker(&s_mutex);
+    if (cancelled) {
+        return {}; // queued behind other renders and scrolled past meanwhile
     }
-
-    void run() override
-    {
-        render();
-        Q_EMIT finished();
+    Poppler::Document *document = documentLocked(key);
+    const std::unique_ptr<Poppler::Page> page = document ? document->page(pageNumber) : nullptr;
+    const QSizeF points = page ? page->pageSizeF() : QSizeF();
+    if (points.isEmpty()) {
+        qWarning() << "PDF page" << pageNumber << "of" << key << "could not be opened";
+        return {};
     }
-
-    void cancel() override
-    {
-        // Pages scrolled past or re-requested at a new zoom level are skipped instead of rendered.
-        m_cancelled = true;
+    const int targetWidth = width > 0 ? width : 1024;
+    const double maxDpi = std::sqrt(maxPagePixels() / (points.width() * points.height())) * 72.0;
+    const double dpi = std::min(targetWidth / points.width() * 72.0, maxDpi);
+    QImage image = page->renderToImage(dpi, dpi);
+    if (image.isNull()) {
+        qWarning() << "PDF page" << pageNumber << "of" << key << "could not be rendered";
     }
-
-    QQuickTextureFactory *textureFactory() const override
-    {
-        return QQuickTextureFactory::textureFactoryForImage(m_image);
-    }
-
-private:
-    void render()
-    {
-        QMutexLocker locker(&s_mutex);
-        if (m_cancelled) {
-            return;
-        }
-        Poppler::Document *document = documentLocked(m_key);
-        const std::unique_ptr<Poppler::Page> page = document ? document->page(m_page) : nullptr;
-        if (!page) {
-            return;
-        }
-        const QSizeF points = page->pageSizeF();
-        if (points.isEmpty()) {
-            return;
-        }
-        const int targetWidth = m_requestedSize.width() > 0 ? m_requestedSize.width() : 1024;
-        const double maxDpi = std::sqrt(MaxPagePixels / (points.width() * points.height())) * 72.0;
-        const double dpi = std::min(targetWidth / points.width() * 72.0, maxDpi);
-        m_image = page->renderToImage(dpi, dpi);
-    }
-
-    QString m_key;
-    int m_page;
-    QSize m_requestedSize;
-    QImage m_image;
-    std::atomic_bool m_cancelled = false;
-};
+    return image;
+}
 }
 
 PdfDocument::PdfDocument(QObject *parent)
@@ -131,6 +94,7 @@ PdfDocument::Layout PdfDocument::readLayout(const QString &key)
         return layout;
     }
     const int count = document->numPages();
+    layout.failed = count == 0; // Poppler "opens" some truncated files as documents without pages
     layout.pageSizes.reserve(count);
     for (int i = 0; i < count; ++i) {
         const std::unique_ptr<Poppler::Page> page = document->page(i);
@@ -141,8 +105,12 @@ PdfDocument::Layout PdfDocument::readLayout(const QString &key)
 
 void PdfDocument::releaseCache()
 {
-    QMutexLocker locker(&s_mutex);
-    s_documents.clear();
+    // Called while hiding the window: never wait for a page that is still rendering.
+    // Documents left open now are released the next time.
+    if (s_mutex.tryLock()) {
+        s_documents.clear();
+        s_mutex.unlock();
+    }
 }
 
 QString PdfDocument::cacheKey(const QString &key)
@@ -202,7 +170,11 @@ QQuickImageResponse *PdfPageProvider::requestImageResponse(const QString &id, co
 {
     // id is "<page>/<mtime>/<percent-encoded path>"
     const qsizetype slash = id.indexOf(QLatin1Char('/'));
-    auto *response = new PageResponse(id.mid(slash + 1), id.left(slash).toInt(), requestedSize);
+    // "::" because the provider base class has an enum value named ImageResponse.
+    auto *response =
+        new ::ImageResponse([key = id.mid(slash + 1), page = id.left(slash).toInt(), width = requestedSize.width()](const std::atomic_bool &cancelled) {
+            return renderPage(key, page, width, cancelled);
+        });
     workerPool()->start(response);
     return response;
 }

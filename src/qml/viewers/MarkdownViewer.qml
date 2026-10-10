@@ -66,7 +66,13 @@ Rectangle {
             rightPadding: Kirigami.Units.gridUnit
             topPadding: Kirigami.Units.gridUnit
             background: null
-            onLinkActivated: link => Qt.openUrlExternally(new URL(link, PeekController.url))
+            // Only web and mail links: a document must not hand an arbitrary scheme or a sibling file to its handler.
+            onLinkActivated: link => {
+                const url = new URL(link, PeekController.url);
+                if (["http:", "https:", "mailto:"].includes(url.protocol)) {
+                    Qt.openUrlExternally(url);
+                }
+            }
         }
     }
 

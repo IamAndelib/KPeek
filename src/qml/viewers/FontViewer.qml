@@ -33,6 +33,7 @@ Rectangle {
 
             Kirigami.Heading {
                 text: [loader.font.family, loader.font.styleName].filter(s => s.length > 0).join(" ")
+                textFormat: Text.PlainText // names come from the font file
                 level: 1
                 wrapMode: Text.Wrap
                 Layout.fillWidth: true

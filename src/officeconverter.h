@@ -25,6 +25,10 @@ class OfficeConverter : public QObject
     Q_PROPERTY(QUrl source READ source WRITE setSource NOTIFY sourceChanged)
     Q_PROPERTY(QUrl pdfUrl READ pdfUrl NOTIFY statusChanged)
     Q_PROPERTY(Status status READ status NOTIFY statusChanged)
+    /// Image source for the preview picture stored in the document itself, or empty.
+    Q_PROPERTY(QString embeddedPreview READ embeddedPreview NOTIFY statusChanged)
+    /// In the Flatpak, documents are never converted: only the embedded preview is shown.
+    Q_PROPERTY(bool sandboxed READ sandboxed CONSTANT)
 
 public:
     enum Status {
@@ -44,6 +48,8 @@ public:
 
     QUrl pdfUrl() const;
     Status status() const;
+    QString embeddedPreview() const;
+    bool sandboxed() const;
 
     /// Command prefix that runs LibreOffice's soffice, or empty when none is installed. Blocking; call off the GUI thread.
     static QStringList sofficeCommand();
@@ -60,5 +66,6 @@ private:
 
     QUrl m_source;
     QString m_pdfPath;
+    QString m_embeddedPreview;
     Status m_status = Idle;
 };

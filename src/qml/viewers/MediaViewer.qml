@@ -133,6 +133,7 @@ Rectangle {
                 Kirigami.Heading {
                     readonly property string title: player.metaData.stringValue(MediaMetaData.Title)
                     text: title.length > 0 ? title : PeekController.fileName
+                    textFormat: Text.PlainText // tags come from the file: never render them as markup
                     level: 2
                     wrapMode: Text.Wrap
                     horizontalAlignment: Text.AlignHCenter
@@ -140,6 +141,7 @@ Rectangle {
                 }
                 QQC2.Label {
                     text: [player.metaData.stringValue(MediaMetaData.ContributingArtist), player.metaData.stringValue(MediaMetaData.AlbumTitle)].filter(s => s.length > 0).join(" — ")
+                    textFormat: Text.PlainText
                     visible: text.length > 0
                     opacity: 0.7
                     wrapMode: Text.Wrap

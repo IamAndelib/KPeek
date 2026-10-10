@@ -20,6 +20,8 @@ private Q_SLOTS:
     void testNotAnArchive();
     void testOtherFormats_data();
     void testOtherFormats();
+    void testAbsurdPaths();
+    void testIncomplete();
 
 private:
     QString makeZip(const QStringList &files);
@@ -138,6 +140,39 @@ void ArchiveModelTest::testOtherFormats()
     }
     QCOMPARE(paths, (QStringList{QStringLiteral("docs"), QStringLiteral("docs/readme.txt"), QStringLiteral("top.bin")}));
     QCOMPARE(listing.fileCount, 2);
+}
+
+void ArchiveModelTest::testAbsurdPaths()
+{
+    // Every parent folder is listed, so one path thousands of levels deep would cost gigabytes.
+    // Such entries are skipped; the rest of the archive is listed normally.
+    QString deep;
+    for (int i = 0; i < 5000; ++i) {
+        deep += QStringLiteral("a/");
+    }
+    const QString zip =
+        makeArchive(QStringLiteral("deep.zip"), ARCHIVE_FORMAT_ZIP, ARCHIVE_FILTER_NONE, {deep + QStringLiteral("x"), QStringLiteral("ok.txt")});
+    const ArchiveListing listing = ArchiveModel::list(zip);
+    QVERIFY(!listing.failed);
+    QCOMPARE(listing.entries.size(), 1);
+    QCOMPARE(listing.entries.first().path, QStringLiteral("ok.txt"));
+}
+
+void ArchiveModelTest::testIncomplete()
+{
+    // A partial download lists what can be read and says the archive is incomplete. (A plain tar cut
+    // at a block boundary is indistinguishable from a complete one; compressed streams are not.)
+    QStringList files;
+    for (int i = 0; i < 2000; ++i) {
+        files.append(QStringLiteral("file%1.txt").arg(i));
+    }
+    const QString tar = makeArchive(QStringLiteral("cut.tar.gz"), ARCHIVE_FORMAT_TAR_PAX_RESTRICTED, ARCHIVE_FILTER_GZIP, files);
+    QFile file(tar);
+    QVERIFY(file.resize(file.size() / 2));
+    const ArchiveListing listing = ArchiveModel::list(tar);
+    QVERIFY(!listing.failed);
+    QVERIFY(listing.incomplete);
+    QVERIFY(listing.fileCount > 0 && listing.fileCount < 2000);
 }
 
 QTEST_GUILESS_MAIN(ArchiveModelTest)

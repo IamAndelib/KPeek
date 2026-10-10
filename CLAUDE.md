@@ -6,8 +6,12 @@ Read README.md first; it covers the features, the Dolphin integration (service m
 ## Principles
 - KISS: lean code, the simplest change that works; no speculative abstractions or options.
 - Viewers are picked by MIME type (`src/viewerresolver.cpp`), never by file extension.
-- Viewers must work inside the Flatpak KDE runtime: no host KParts or host binaries (LibreOffice is the
-  one optional exception, reached through `flatpak-spawn --host`).
+- Viewers must work inside the Flatpak KDE runtime: no host KParts or host binaries. Native builds convert
+  office documents with LibreOffice; the Flatpak never reaches the host (that permission would let any
+  decoder bug escape the sandbox) and shows the document's embedded preview image instead.
+- Files are untrusted: render file-derived strings (names, tags, entry paths) with `Text.PlainText`; the
+  QML engine refuses network access (`LocalOnlyNetworkAccessManager` in `main.cpp`); never run external
+  programs on file content (libarchive filters are listed explicitly in `src/archivereader.h`, EPS is excluded).
 - Shared interaction lives in `src/qml/ViewerInput.qml` (Ctrl+wheel zoom, Ctrl+drag, scroll keys) and the
   header zoom controls in `Main.qml`. Viewers take part by exposing `zoom` and `scrollTarget`; don't add
   per-viewer controls for these. The plain wheel only scrolls (never switches files: documents need it).
@@ -22,8 +26,8 @@ Read README.md first; it covers the features, the Dolphin integration (service m
 - Machines with ≤ 4 GB RAM (`isLowMemorySystem()`, `src/systeminfo.h`; `KPEEK_LOW_MEMORY=1` forces it)
   get lower caps: images 4096 px, PDF pages 24 MP, 2 cached PDF documents.
 - Flatpak manifest (when written) needs: `--device=dri` (GPU and VA-API), the `codecs-extra` extension
-  (H.264/HEVC), `--filesystem=host:ro` (sibling files), `--filesystem=xdg-cache/thumbnails:ro`,
-  `--talk-name=org.freedesktop.Flatpak` (host LibreOffice). Don't bundle NVIDIA libraries.
+  (H.264/HEVC), `--filesystem=host:ro` (sibling files), `--filesystem=xdg-cache/thumbnails:ro`.
+  No `--share=network` and no host access (`org.freedesktop.Flatpak`). Don't bundle NVIDIA libraries.
 - Paged documents (PDF, office, comics) share `src/qml/PageView.qml`. A new paged format is a C++ QML type with
   `pageCount`, `pageSize(i)`, `pageSource(i)` (an async image provider URL) and `failed`, like `ComicBook`.
 - Archives and comic books are read with libarchive (streamed headers, no in-memory tree); its one-thread

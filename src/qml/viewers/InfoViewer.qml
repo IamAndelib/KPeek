@@ -42,6 +42,7 @@ Rectangle {
 
         Kirigami.Heading {
             text: PeekController.fileName
+            textFormat: Text.PlainText
             level: 2
             wrapMode: Text.Wrap
             horizontalAlignment: Text.AlignHCenter

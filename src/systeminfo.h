@@ -5,6 +5,8 @@
 
 #include <QtGlobal>
 
+#include <clocale>
+#include <langinfo.h>
 #include <unistd.h>
 
 /**
@@ -24,4 +26,21 @@ inline bool isLowMemorySystem()
         return pages > 0 && pageSize > 0 && qint64(pages) * pageSize <= qint64(4608) * 1024 * 1024;
     }();
     return low;
+}
+
+/// Upper bound for one rendered PDF or comic page, however far the user zooms in:
+/// ~256 MB as ARGB32 (~96 MB on low-memory machines).
+inline double maxPagePixels()
+{
+    return isLowMemorySystem() ? 24e6 : 64e6;
+}
+
+/// Makes the C library's character set UTF-8 when it isn't, e.g. with LANG unset or in a Flatpak
+/// without data for the user's locale. libarchive converts entry names through it, and in plain
+/// "C" it drops every name that isn't ASCII. C.UTF-8 is built into glibc, so it always exists.
+inline void ensureUtf8Locale()
+{
+    if (qstrcmp(nl_langinfo(CODESET), "UTF-8") != 0) {
+        setlocale(LC_CTYPE, "C.UTF-8");
+    }
 }

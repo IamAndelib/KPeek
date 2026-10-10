@@ -2,12 +2,15 @@
 // SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
 
 #include "comicbook.h"
+#include "systeminfo.h"
 
 #include <QBuffer>
 #include <QFile>
 #include <QImage>
 #include <QTemporaryDir>
 #include <QTest>
+
+#include <clocale>
 
 #include <archive.h>
 #include <archive_entry.h>
@@ -22,6 +25,9 @@ private Q_SLOTS:
     void testReadPage();
     void testNoPages();
     void testDotSlashNames();
+    void testWarningsKeepGoing();
+    void testEncrypted();
+    void testCancelled();
 
 private:
     QTemporaryDir m_dir;
@@ -106,6 +112,73 @@ void ComicBookTest::testDotSlashNames()
     const ComicBook::Layout layout = ComicBook::readLayout(path);
     QCOMPARE(layout.entries, (QStringList{QStringLiteral("page1.png"), QStringLiteral("page2.png")}));
     QCOMPARE(ComicBook::readPage(path, layout.entries.first(), 10).size(), QSize(10, 10));
+}
+
+void ComicBookTest::testWarningsKeepGoing()
+{
+    // In plain "C" (LANG unset, or a Flatpak without the user's locale) libarchive can't convert
+    // non-ASCII names and drops them; KPeek switches to C.UTF-8 at startup (ensureUtf8Locale()).
+    const QString path = m_dir.filePath(QStringLiteral("names.cb7"));
+    archive *writer = archive_write_new();
+    archive_write_set_format_7zip(writer);
+    archive_write_open_filename(writer, QFile::encodeName(path).constData());
+    for (const QString &name : {QStringLiteral("1 ü.png"), QStringLiteral("2.png"), QStringLiteral("3.png")}) {
+        const QByteArray data = png(10, 10);
+        archive_entry *entry = archive_entry_new();
+        archive_entry_set_pathname_utf8(entry, name.toUtf8().constData());
+        archive_entry_set_filetype(entry, AE_IFREG);
+        archive_entry_set_perm(entry, 0644);
+        archive_entry_set_size(entry, data.size());
+        archive_write_header(writer, entry);
+        archive_write_data(writer, data.constData(), data.size());
+        archive_entry_free(entry);
+    }
+    archive_write_close(writer);
+    archive_write_free(writer);
+
+    const QByteArray locale = setlocale(LC_CTYPE, nullptr);
+    setlocale(LC_CTYPE, "C");
+    // Even without a usable name, the pages after the problematic one are kept.
+    QCOMPARE(ComicBook::readLayout(path).entries, (QStringList{QStringLiteral("2.png"), QStringLiteral("3.png")}));
+    ensureUtf8Locale();
+    const ComicBook::Layout layout = ComicBook::readLayout(path);
+    setlocale(LC_CTYPE, locale.constData());
+    QCOMPARE(layout.entries.size(), 3);
+    QCOMPARE(layout.entries.first(), QStringLiteral("1 ü.png"));
+    QVERIFY(!ComicBook::readPage(path, layout.entries.first(), 10).isNull());
+}
+
+void ComicBookTest::testEncrypted()
+{
+    const QString path = m_dir.filePath(QStringLiteral("locked.cbz"));
+    archive *writer = archive_write_new();
+    archive_write_set_format_zip(writer);
+    if (archive_write_set_options(writer, "zip:encryption=zipcrypt") != ARCHIVE_OK) {
+        archive_write_free(writer);
+        QSKIP("libarchive can't write encrypted zips here");
+    }
+    archive_write_set_passphrase(writer, "secret");
+    archive_write_open_filename(writer, QFile::encodeName(path).constData());
+    const QByteArray data = png(10, 10);
+    archive_entry *entry = archive_entry_new();
+    archive_entry_set_pathname(entry, "1.png");
+    archive_entry_set_filetype(entry, AE_IFREG);
+    archive_entry_set_perm(entry, 0644);
+    archive_entry_set_size(entry, data.size());
+    archive_write_header(writer, entry);
+    archive_write_data(writer, data.constData(), data.size());
+    archive_entry_free(entry);
+    archive_write_close(writer);
+    archive_write_free(writer);
+
+    const ComicBook::Layout layout = ComicBook::readLayout(path);
+    QVERIFY(layout.locked); // shown as "password-protected", not as blank pages
+}
+
+void ComicBookTest::testCancelled()
+{
+    const std::atomic_bool cancelled = true;
+    QVERIFY(ComicBook::readPage(m_cbz, QStringLiteral("page1.png"), 10, &cancelled).isNull());
 }
 
 QTEST_GUILESS_MAIN(ComicBookTest)

@@ -43,6 +43,9 @@ void ViewerResolverTest::testViewer_data()
     QTest::newRow("rpm") << QStringLiteral("application/x-rpm") << QStringLiteral("Archive");
     QTest::newRow("deb") << QStringLiteral("application/vnd.debian.binary-package") << QStringLiteral("Archive");
     QTest::newRow("cbz is a comic, not a zip archive") << QStringLiteral("application/vnd.comicbook+zip") << QStringLiteral("Comic");
+    QTest::newRow("m3u playlist is text, not media") << QStringLiteral("audio/x-mpegurl") << QStringLiteral("Text");
+    QTest::newRow("hls playlist is text, not media") << QStringLiteral("application/vnd.apple.mpegurl") << QStringLiteral("Text");
+    QTest::newRow("eps is shown as PostScript text, not decoded with Ghostscript") << QStringLiteral("image/x-eps") << QStringLiteral("Text");
     QTest::newRow("gltf") << QStringLiteral("model/gltf-binary") << QStringLiteral("Model");
     QTest::newRow("obj is a model, not text") << QStringLiteral("model/obj") << QStringLiteral("Model");
     QTest::newRow("stl") << QStringLiteral("model/stl") << QStringLiteral("Model");

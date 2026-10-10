@@ -5,6 +5,7 @@
 #include "kpeek-version.h"
 #include "pdfdocument.h"
 #include "peekcontroller.h"
+#include "systeminfo.h"
 #include "workerpool.h"
 
 #include <KAboutData>
@@ -18,7 +19,10 @@
 #include <QDeadlineTimer>
 #include <QDir>
 #include <QIcon>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
 #include <QQmlApplicationEngine>
+#include <QQmlNetworkAccessManagerFactory>
 #include <QQuickStyle>
 #include <QQuickWindow>
 
@@ -26,6 +30,32 @@
 
 namespace
 {
+/// KPeek never needs the network. Markdown images and rich text could otherwise fetch remote URLs
+/// (tracking pixels) just because a file was selected: everything but local files is refused.
+class LocalOnlyNetworkAccessManager : public QNetworkAccessManager
+{
+protected:
+    QNetworkReply *createRequest(Operation op, const QNetworkRequest &request, QIODevice *data) override
+    {
+        const QString scheme = request.url().scheme();
+        if (scheme == QLatin1String("file") || scheme == QLatin1String("qrc") || scheme == QLatin1String("data")) {
+            return QNetworkAccessManager::createRequest(op, request, data);
+        }
+        return QNetworkAccessManager::createRequest(op, QNetworkRequest(QUrl(QStringLiteral("blocked:"))), data);
+    }
+};
+
+class LocalOnlyNetworkAccessManagerFactory : public QQmlNetworkAccessManagerFactory
+{
+public:
+    QNetworkAccessManager *create(QObject *parent) override
+    {
+        auto *manager = new LocalOnlyNetworkAccessManager;
+        manager->setParent(parent);
+        return manager;
+    }
+};
+
 QList<QUrl> urlsFromArguments(QCommandLineParser &parser, const QStringList &arguments, const QString &workingDirectory)
 {
     parser.parse(arguments);
@@ -41,7 +71,8 @@ QList<QUrl> urlsFromArguments(QCommandLineParser &parser, const QStringList &arg
 int main(int argc, char *argv[])
 {
     // QApplication rather than QGuiApplication so Kirigami picks up the desktop style and platform theme.
-    QApplication app(argc, argv);
+    QApplication app(argc, argv); // sets the C locale from the environment
+    ensureUtf8Locale();
     app.setQuitOnLastWindowClosed(false);
 
     KLocalizedString::setApplicationDomain("kpeek");
@@ -81,10 +112,12 @@ int main(int argc, char *argv[])
 
     PeekController controller(nullptr);
 
+    LocalOnlyNetworkAccessManagerFactory networkFactory; // must outlive the engine
     QQmlApplicationEngine engine;
     KLocalization::setupLocalizedContext(&engine);
+    engine.setNetworkAccessManagerFactory(&networkFactory);
     engine.addImageProvider(QLatin1String(PdfPageProvider::Id), new PdfPageProvider);
-    engine.addImageProvider(QLatin1String(ComicPageProvider::Id), new ComicPageProvider);
+    engine.addImageProvider(QLatin1String(ArchiveImageProvider::Id), new ArchiveImageProvider);
     engine.loadFromModule("io.github.iamandelib.kpeek", "Main");
     auto *window = engine.rootObjects().isEmpty() ? nullptr : qobject_cast<QQuickWindow *>(engine.rootObjects().constFirst());
     if (!window) {

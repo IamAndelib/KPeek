@@ -26,6 +26,9 @@ public:
 
     static constexpr qint64 MaxBytes = 2 * 1024 * 1024;
     static constexpr qint64 MaxHighlightChars = 512 * 1024;
+    /// Longer lines are broken up: Qt lays out a line as one unit, and a 2 MB minified file on a
+    /// single line takes several GB to show (about 350 MB as 10,000-character lines).
+    static constexpr qsizetype MaxLineChars = 10000;
 
     QUrl url() const;
     void setUrl(const QUrl &url);
@@ -39,6 +42,9 @@ public:
     /// Decodes using a BOM if present, else UTF-8, falling back to Latin-1 for legacy 8-bit files.
     /// @p complete is false when @p data was cut off, so a character split at the end isn't an error.
     static QString decode(const QByteArray &data, bool complete = true);
+
+    /// Inserts a line break after every MaxLineChars characters without one.
+    static QString breakLongLines(const QString &text);
 
 Q_SIGNALS:
     void urlChanged();

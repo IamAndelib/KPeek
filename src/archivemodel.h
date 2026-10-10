@@ -24,6 +24,7 @@ struct ArchiveListing {
     qint64 totalSize = 0;
     bool failed = false;
     bool truncated = false;
+    bool incomplete = false; ///< the archive is damaged or cut off; entries up to that point are listed
 };
 
 /// Flat listing of an archive's contents (zip, tar.*, 7z, ar), read on the worker pool.
@@ -36,6 +37,7 @@ class ArchiveModel : public QAbstractListModel
     Q_PROPERTY(bool loading READ loading NOTIFY statusChanged)
     Q_PROPERTY(bool failed READ failed NOTIFY statusChanged)
     Q_PROPERTY(bool truncated READ truncated NOTIFY statusChanged)
+    Q_PROPERTY(bool incomplete READ incomplete NOTIFY statusChanged)
     Q_PROPERTY(int fileCount READ fileCount NOTIFY statusChanged)
     Q_PROPERTY(QString totalSizeText READ totalSizeText NOTIFY statusChanged)
     Q_PROPERTY(int maxEntries READ maxEntries CONSTANT)
@@ -50,6 +52,8 @@ public:
     };
 
     static constexpr int MaxEntries = 20000;
+    static constexpr qsizetype MaxPathChars = 4096;
+    static constexpr qsizetype MaxDepth = 64;
 
     explicit ArchiveModel(QObject *parent = nullptr);
     ~ArchiveModel() override;
@@ -64,6 +68,7 @@ public:
     bool loading() const;
     bool failed() const;
     bool truncated() const;
+    bool incomplete() const;
     int fileCount() const;
     QString totalSizeText() const;
     int maxEntries() const;

@@ -59,6 +59,7 @@ QQC2.ApplicationWindow {
             }
             QQC2.Label {
                 text: PeekController.fileName
+                textFormat: Text.PlainText
                 elide: Text.ElideMiddle
                 font.bold: true
                 Layout.fillWidth: true

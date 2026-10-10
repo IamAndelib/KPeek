@@ -2,10 +2,13 @@
 // SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
 
 #include "officeconverter.h"
+#include "archivereader.h"
+#include "comicbook.h"
 #include "workerpool.h"
 
 #include <QCoreApplication>
 #include <QCryptographicHash>
+#include <QDebug>
 #include <QDir>
 #include <QDirIterator>
 #include <QFileInfo>
@@ -26,6 +29,31 @@ const QString FlathubLibreOffice = QStringLiteral("org.libreoffice.LibreOffice")
 QString cacheRoot()
 {
     return QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + QStringLiteral("/office");
+}
+
+bool isSandboxed()
+{
+    return QFileInfo::exists(QStringLiteral("/.flatpak-info"));
+}
+
+/// The preview image that ODF and most OOXML files carry (a picture of the first page).
+QString embeddedPreviewEntry(const QString &path)
+{
+    static const QStringList candidates = {QStringLiteral("Thumbnails/thumbnail.png"),
+                                           QStringLiteral("docProps/thumbnail.jpeg"),
+                                           QStringLiteral("docProps/thumbnail.jpg"),
+                                           QStringLiteral("docProps/thumbnail.png")};
+    const ArchivePtr reader = openArchive(path);
+    archive_entry *entry = nullptr;
+    // Zip headers are found by seeking, so this costs milliseconds even for large documents.
+    for (int i = 0; reader && i < 1000 && archive_read_next_header(reader.get(), &entry) == ARCHIVE_OK; ++i) {
+        const QString name = entryPath(entry);
+        if (candidates.contains(name)) {
+            return name;
+        }
+        archive_read_data_skip(reader.get());
+    }
+    return {};
 }
 
 bool runsSuccessfully(const QStringList &command)
@@ -75,6 +103,15 @@ public:
         return m_commandKnown && m_command.isEmpty();
     }
 
+    /// Looks for LibreOffice again (in the background): it may have been installed since.
+    void probeAgain()
+    {
+        if (m_commandKnown && !isSandboxed()) {
+            m_commandKnown = false;
+            probe();
+        }
+    }
+
 Q_SIGNALS:
     void finished(const QString &pdfPath, OfficeConverter::Status status);
 
@@ -87,18 +124,8 @@ private:
     explicit ConversionQueue(QObject *parent)
         : QObject(parent)
     {
-        // Find LibreOffice and tidy the cache off the GUI thread; probing can take seconds inside a Flatpak.
-        auto *watcher = new QFutureWatcher<QStringList>(this);
-        connect(watcher, &QFutureWatcher<QStringList>::finished, this, [this, watcher] {
-            m_command = watcher->result();
-            m_commandKnown = true;
-            watcher->deleteLater();
-            startNext();
-        });
-        watcher->setFuture(QtConcurrent::run(workerPool(), [] {
-            OfficeConverter::pruneCache();
-            return OfficeConverter::sofficeCommand();
-        }));
+        workerPool()->start(&OfficeConverter::pruneCache);
+        probe();
 
         // Let a conversion in progress finish cleanly when the app quits, rather than orphaning LibreOffice,
         // and start no new one: waitForFinished() delivers finished(), which would otherwise call startNext().
@@ -110,6 +137,22 @@ private:
                 m_process->waitForFinished(3000);
             }
         });
+    }
+
+    /// Finds LibreOffice off the GUI thread: checking for a Flathub install runs "flatpak info".
+    void probe()
+    {
+        auto *watcher = new QFutureWatcher<QStringList>(this);
+        connect(watcher, &QFutureWatcher<QStringList>::finished, this, [this, watcher] {
+            m_command = watcher->result();
+            m_commandKnown = true;
+            if (m_command.isEmpty() && !isSandboxed()) {
+                qWarning() << "LibreOffice not found: office documents show their embedded preview only";
+            }
+            watcher->deleteLater();
+            startNext();
+        });
+        watcher->setFuture(QtConcurrent::run(workerPool(), &OfficeConverter::sofficeCommand));
     }
 
     void startNext()
@@ -147,6 +190,9 @@ private:
         connect(m_process, &QProcess::finished, this, [this, job, outDir, tmpDir](int exitCode, QProcess::ExitStatus exitStatus) {
             const QString converted = tmpDir + QLatin1Char('/') + QFileInfo(job.pdfPath).fileName();
             bool ok = exitStatus == QProcess::NormalExit && exitCode == 0 && QFileInfo::exists(converted);
+            if (!ok) {
+                qWarning() << "LibreOffice could not convert" << job.sourcePath << exitStatus << exitCode << m_process->readAllStandardError().trimmed();
+            }
             if (ok) {
                 QDir().mkpath(outDir);
                 ok = QFile::rename(converted, job.pdfPath);
@@ -156,10 +202,13 @@ private:
         });
         connect(m_process, &QProcess::errorOccurred, this, [this, job](QProcess::ProcessError error) {
             if (error == QProcess::FailedToStart) {
+                qWarning() << "LibreOffice could not be started:" << m_process->errorString();
                 done(job.pdfPath, OfficeConverter::Failed);
             }
         });
+        // A wedged LibreOffice may ignore SIGTERM; it must not block every later conversion.
         QTimer::singleShot(ConversionTimeout, m_process, &QProcess::terminate);
+        QTimer::singleShot(ConversionTimeout + 5s, m_process, &QProcess::kill);
         m_process->start();
     }
 
@@ -183,17 +232,10 @@ private:
 
 QStringList OfficeConverter::sofficeCommand()
 {
-    if (QFileInfo::exists(QStringLiteral("/.flatpak-info"))) {
-        // The sandbox has no LibreOffice; use the host's.
-        const QStringList host = {QStringLiteral("flatpak-spawn"), QStringLiteral("--host")};
-        for (const QString &binary : {QStringLiteral("soffice"), QStringLiteral("libreoffice")}) {
-            if (runsSuccessfully(host + QStringList{QStringLiteral("which"), binary})) {
-                return host + QStringList{binary};
-            }
-        }
-        if (runsSuccessfully(host + QStringList{QStringLiteral("flatpak"), QStringLiteral("info"), FlathubLibreOffice})) {
-            return host + QStringList{QStringLiteral("flatpak"), QStringLiteral("run"), QStringLiteral("--command=soffice"), FlathubLibreOffice};
-        }
+    if (isSandboxed()) {
+        // Reaching the host's LibreOffice would need a permission that lets the app run anything on
+        // the host, and every document browsed past would be parsed outside the sandbox. The Flatpak
+        // shows the document's own preview image instead.
         return {};
     }
 
@@ -212,7 +254,7 @@ QStringList OfficeConverter::sofficeCommand()
 
 void OfficeConverter::pruneCache()
 {
-    const QDateTime cutoff = QDateTime::currentDateTime().addSecs(-std::chrono::duration_cast<std::chrono::seconds>(CacheLifetime).count());
+    const QDateTime cutoff = QDateTime::currentDateTime().addDuration(-CacheLifetime);
     QDirIterator it(cacheRoot(), QDir::Dirs | QDir::NoDotAndDotDot);
     while (it.hasNext()) {
         const QFileInfo dir = it.nextFileInfo();
@@ -255,9 +297,12 @@ void OfficeConverter::setSource(const QUrl &source)
     const QFileInfo info(source.toLocalFile());
     if (!info.isFile()) {
         m_pdfPath.clear();
+        m_embeddedPreview.clear();
         setStatus(Failed);
         return;
     }
+    const QString entry = embeddedPreviewEntry(info.absoluteFilePath());
+    m_embeddedPreview = entry.isEmpty() ? QString() : ArchiveImageProvider::source(info.absoluteFilePath(), info.lastModified().toMSecsSinceEpoch(), entry);
 
     const QByteArray key =
         info.absoluteFilePath().toUtf8() + '\n' + QByteArray::number(info.size()) + '\n' + QByteArray::number(info.lastModified().toMSecsSinceEpoch());
@@ -272,6 +317,7 @@ void OfficeConverter::setSource(const QUrl &source)
     auto *queue = ConversionQueue::instance();
     if (queue->isUnavailable()) {
         setStatus(Unavailable);
+        queue->probeAgain(); // for the next document, in case LibreOffice has been installed meanwhile
         return;
     }
     setStatus(Converting);
@@ -281,6 +327,16 @@ void OfficeConverter::setSource(const QUrl &source)
 QUrl OfficeConverter::pdfUrl() const
 {
     return m_status == Ready ? QUrl::fromLocalFile(m_pdfPath) : QUrl();
+}
+
+QString OfficeConverter::embeddedPreview() const
+{
+    return m_embeddedPreview;
+}
+
+bool OfficeConverter::sandboxed() const
+{
+    return isSandboxed();
 }
 
 OfficeConverter::Status OfficeConverter::status() const

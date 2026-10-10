@@ -2,21 +2,20 @@
 // SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
 
 #include "archivemodel.h"
+#include "archivereader.h"
 #include "naturalsort.h"
 #include "workerpool.h"
 
 #include <KFormat>
 
 #include <QCollator>
-#include <QFile>
+#include <QDebug>
 #include <QMimeDatabase>
 #include <QSet>
 #include <QtConcurrentRun>
 
-#include <archive.h>
-#include <archive_entry.h>
-
 #include <algorithm>
+#include <limits>
 #include <numeric>
 
 namespace
@@ -50,8 +49,7 @@ void sortListing(QList<ArchiveEntry> &entries)
             if (left == right) {
                 continue;
             }
-            const int order = collator.compare(left, right);
-            return order != 0 ? order < 0 : left < right;
+            return naturalLess(collator, left, right);
         }
         return a.segments.size() < b.segments.size();
     };
@@ -95,10 +93,8 @@ ArchiveListing ArchiveModel::list(const QString &path, const std::atomic_bool *c
     ArchiveListing listing;
     // libarchive streams through the entry headers (skipping the data), so this needs no in-memory
     // tree and can stop between entries. It reads zip, 7z, rar, tar.*, iso, cpio, cab, ar (deb), rpm, …
-    const std::unique_ptr<archive, decltype(&archive_read_free)> reader(archive_read_new(), archive_read_free);
-    archive_read_support_filter_all(reader.get());
-    archive_read_support_format_all(reader.get());
-    if (archive_read_open_filename(reader.get(), QFile::encodeName(path).constData(), 64 * 1024) != ARCHIVE_OK) {
+    const ArchivePtr reader = openArchive(path);
+    if (!reader) {
         listing.failed = true;
         return listing;
     }
@@ -120,7 +116,9 @@ ArchiveListing ArchiveModel::list(const QString &path, const std::atomic_bool *c
         item.isDir = isDir;
         if (!isDir) {
             item.sizeText = format.formatByteSize(size);
-            listing.totalSize += size;
+            // Sizes come from the archive and can be absurd: saturate rather than overflow.
+            listing.totalSize = size > 0 && listing.totalSize > std::numeric_limits<qint64>::max() - size ? std::numeric_limits<qint64>::max()
+                                                                                                          : listing.totalSize + std::max<qint64>(size, 0);
             ++listing.fileCount;
         }
         listing.entries.append(item);
@@ -133,15 +131,14 @@ ArchiveListing ArchiveModel::list(const QString &path, const std::atomic_bool *c
         if (cancelled && *cancelled) {
             return {};
         }
-        const char *utf8 = archive_entry_pathname_utf8(entry);
-        QString entryPath = utf8 ? QString::fromUtf8(utf8) : QFile::decodeName(archive_entry_pathname(entry));
-        while (entryPath.startsWith(QLatin1String("./"))) {
-            entryPath.remove(0, 2);
-        }
+        QString entryPath = ::entryPath(entry);
         while (entryPath.endsWith(QLatin1Char('/'))) {
             entryPath.chop(1);
         }
-        if (entryPath.isEmpty() || entryPath == QLatin1String(".")) {
+        // Every parent folder becomes an entry, so a single crafted path thousands of levels deep
+        // would cost gigabytes. Real archives stay far below these limits.
+        if (entryPath.isEmpty() || entryPath == QLatin1String(".") || entryPath.size() > MaxPathChars || entryPath.count(QLatin1Char('/')) > MaxDepth) {
+            archive_read_data_skip(reader.get());
             continue;
         }
         bool ok = true;
@@ -154,9 +151,13 @@ ArchiveListing ArchiveModel::list(const QString &path, const std::atomic_bool *c
         }
         archive_read_data_skip(reader.get());
     }
-    if (result == ARCHIVE_FATAL && listing.entries.isEmpty()) {
-        listing.failed = true; // corrupt, encrypted headers, or not an archive after all
-        return listing;
+    if (result == ARCHIVE_FATAL) {
+        qWarning() << "Archive" << path << "could not be read completely:" << archive_error_string(reader.get());
+        if (listing.entries.isEmpty()) {
+            listing.failed = true; // corrupt, encrypted headers, or not an archive after all
+            return listing;
+        }
+        listing.incomplete = true; // e.g. a partial download: say so rather than look complete
     }
 
     QMimeDatabase mimeDatabase;
@@ -240,6 +241,11 @@ bool ArchiveModel::failed() const
 bool ArchiveModel::truncated() const
 {
     return m_listing.truncated;
+}
+
+bool ArchiveModel::incomplete() const
+{
+    return m_listing.incomplete;
 }
 
 int ArchiveModel::fileCount() const

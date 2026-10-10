@@ -19,7 +19,9 @@ add_executable(kpeek
     pdfdocument.cpp pdfdocument.h
     officeconverter.cpp officeconverter.h
     archivemodel.cpp archivemodel.h
+    archivereader.h
     comicbook.cpp comicbook.h
+    imageresponse.h
     workerpool.h
 )
 
@@ -56,6 +58,7 @@ target_link_libraries(kpeek PRIVATE
     Qt6::QuickControls2
     Qt6::Widgets
     Qt6::Concurrent
+    Qt6::Network
     Poppler::Qt6
     LibArchive::LibArchive
     KF6::CoreAddons

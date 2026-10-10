@@ -70,7 +70,6 @@ bool isArchive(const QMimeType &mime)
                         QStringLiteral("application/x-zstd-compressed-tar"),
                         QStringLiteral("application/x-lzma-compressed-tar"),
                         QStringLiteral("application/x-lz4-compressed-tar"),
-                        QStringLiteral("application/x-lrzip-compressed-tar"),
                         QStringLiteral("application/x-tarz"),
                         QStringLiteral("application/x-7z-compressed"),
                         QStringLiteral("application/vnd.rar"),
@@ -82,6 +81,18 @@ bool isArchive(const QMimeType &mime)
                         QStringLiteral("application/x-xar"),
                         QStringLiteral("application/x-lha"),
                         QStringLiteral("application/x-archive")});
+}
+
+/// Playlists list media URLs: the media player would fetch them, network ones included. Shown as text.
+bool isPlaylist(const QMimeType &mime)
+{
+    return inheritsAny(mime,
+                       {QStringLiteral("audio/x-mpegurl"),
+                        QStringLiteral("application/vnd.apple.mpegurl"),
+                        QStringLiteral("audio/x-scpls"),
+                        QStringLiteral("audio/x-ms-asx"),
+                        QStringLiteral("application/xspf+xml"),
+                        QStringLiteral("application/dash+xml")});
 }
 
 bool isFont(const QMimeType &mime)
@@ -114,7 +125,13 @@ QString ViewerResolver::viewerFor(const QMimeType &mime)
         return QStringLiteral("Info");
     }
 
-    static const QList<QByteArray> imageTypes = QImageReader::supportedMimeTypes();
+    static const QList<QByteArray> imageTypes = [] {
+        QList<QByteArray> types = QImageReader::supportedMimeTypes();
+        // kimageformats reads EPS by running Ghostscript: never on untrusted files, never on the host.
+        types.removeAll("image/x-eps");
+        types.removeAll("application/postscript");
+        return types;
+    }();
     for (const QByteArray &type : imageTypes) {
         if (mime.inherits(QString::fromLatin1(type))) {
             return QStringLiteral("Image");
@@ -127,6 +144,9 @@ QString ViewerResolver::viewerFor(const QMimeType &mime)
     // Before archives: OOXML and OpenDocument files are zip containers.
     if (isOffice(mime)) {
         return QStringLiteral("Office");
+    }
+    if (isPlaylist(mime)) {
+        return QStringLiteral("Text");
     }
     if (mime.name().startsWith(QLatin1String("video/")) || mime.name().startsWith(QLatin1String("audio/"))
         || mime.inherits(QStringLiteral("application/ogg"))) {

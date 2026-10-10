@@ -27,7 +27,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 ecm_setup_version(${PROJECT_VERSION} VARIABLE_PREFIX KPEEK VERSION_HEADER ${CMAKE_CURRENT_BINARY_DIR}/kpeek-version.h)
 
-find_package(Qt6 ${QT_MIN_VERSION} REQUIRED COMPONENTS Core Gui Widgets Concurrent Qml Quick QuickControls2)
+find_package(Qt6 ${QT_MIN_VERSION} REQUIRED COMPONENTS Core Gui Widgets Concurrent Network Qml Quick QuickControls2)
 qt_standard_project_setup(REQUIRES 6.8)
 
 find_package(KF6 ${KF_MIN_VERSION} REQUIRED COMPONENTS CoreAddons I18n Crash DBusAddons WindowSystem)

@@ -2,56 +2,39 @@
 // SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
 
 #include "comicbook.h"
+#include "archivereader.h"
+#include "imageresponse.h"
 #include "naturalsort.h"
 #include "systeminfo.h"
 #include "workerpool.h"
 
 #include <QBuffer>
-#include <QFile>
+#include <QDebug>
 #include <QFileInfo>
 #include <QImageReader>
-#include <QQuickTextureFactory>
-#include <QRunnable>
+#include <QScopeGuard>
+#include <QSemaphore>
 #include <QSet>
 #include <QtConcurrentRun>
 
-#include <archive.h>
-#include <archive_entry.h>
-
 #include <algorithm>
 #include <cmath>
-#include <numeric>
 
 namespace
 {
-using ArchivePtr = std::unique_ptr<archive, decltype(&archive_read_free)>;
-
 // Enough of a page to read its dimensions; JPEG headers can sit behind a large EXIF block.
 constexpr qsizetype HeaderBytes = 256 * 1024;
-// A single page beyond this is treated as broken rather than extracted into memory.
-constexpr qint64 MaxPageBytes = 256 * 1024 * 1024;
-
-ArchivePtr openArchive(const QString &path)
+// Bounds for crafted archives: more pages than any real book, and a page beyond this size is
+// treated as broken rather than extracted into memory.
+constexpr qsizetype MaxPages = 10000;
+qint64 maxPageBytes()
 {
-    ArchivePtr reader(archive_read_new(), archive_read_free);
-    archive_read_support_filter_all(reader.get());
-    archive_read_support_format_all(reader.get());
-    if (archive_read_open_filename(reader.get(), QFile::encodeName(path).constData(), 64 * 1024) != ARCHIVE_OK) {
-        return ArchivePtr(nullptr, archive_read_free);
-    }
-    return reader;
+    return isLowMemorySystem() ? 32 * 1024 * 1024 : 64 * 1024 * 1024;
 }
 
-QString entryPath(archive_entry *entry)
-{
-    const char *utf8 = archive_entry_pathname_utf8(entry);
-    QString path = utf8 ? QString::fromUtf8(utf8) : QFile::decodeName(archive_entry_pathname(entry));
-    // Archives made with "tar -C dir ." name their entries "./page1.jpg".
-    while (path.startsWith(QLatin1String("./"))) {
-        path.remove(0, 2);
-    }
-    return path;
-}
+// At most two pages are extracted at once, so a book of decompression bombs can't take a
+// page-sized buffer per CPU core. Decoding a page takes milliseconds; scrolling doesn't notice.
+QSemaphore s_pageSlots(2);
 
 /// Images that are pages: not macOS resource forks or other hidden files.
 bool isPage(const QString &path)
@@ -66,14 +49,18 @@ bool isPage(const QString &path)
     return formats.contains(QFileInfo(path).suffix().toLower().toLatin1());
 }
 
-/// Reads up to @p limit bytes of the current entry's data.
+/// Reads up to @p limit bytes of the current entry's data; null if it can't be extracted.
 QByteArray readData(archive *reader, qint64 limit)
 {
     QByteArray data;
     char buffer[64 * 1024];
     while (data.size() < limit) {
         const la_ssize_t read = archive_read_data(reader, buffer, sizeof(buffer));
-        if (read <= 0) {
+        if (read < 0) {
+            qWarning() << "Comic book page could not be extracted:" << archive_error_string(reader);
+            return {};
+        }
+        if (read == 0) {
             break;
         }
         data.append(buffer, read);
@@ -81,42 +68,12 @@ QByteArray readData(archive *reader, qint64 limit)
     return data;
 }
 
-class PageResponse : public QQuickImageResponse, public QRunnable
+/// libarchive reports recoverable problems (e.g. a name it can't convert) as warnings: keep going.
+bool nextHeader(archive *reader, archive_entry **entry)
 {
-public:
-    PageResponse(const QString &path, const QString &entry, int width)
-        : m_path(path)
-        , m_entry(entry)
-        , m_width(width)
-    {
-        setAutoDelete(false);
-    }
-
-    void run() override
-    {
-        if (!m_cancelled) {
-            m_image = ComicBook::readPage(m_path, m_entry, m_width);
-        }
-        Q_EMIT finished();
-    }
-
-    void cancel() override
-    {
-        m_cancelled = true; // scrolled past, or re-requested at another zoom level
-    }
-
-    QQuickTextureFactory *textureFactory() const override
-    {
-        return QQuickTextureFactory::textureFactoryForImage(m_image);
-    }
-
-private:
-    QString m_path;
-    QString m_entry;
-    int m_width;
-    QImage m_image;
-    std::atomic_bool m_cancelled = false;
-};
+    const int result = archive_read_next_header(reader, entry);
+    return result == ARCHIVE_OK || result == ARCHIVE_WARN;
+}
 }
 
 ComicBook::ComicBook(QObject *parent)
@@ -144,8 +101,13 @@ ComicBook::Layout ComicBook::readLayout(const QString &path, const std::atomic_b
         return layout;
     }
 
+    struct Page {
+        QString entry;
+        QSizeF size;
+    };
+    QList<Page> pages;
     archive_entry *entry = nullptr;
-    while (archive_read_next_header(reader.get(), &entry) == ARCHIVE_OK) {
+    while (nextHeader(reader.get(), &entry) && pages.size() < MaxPages) {
         if (cancelled && *cancelled) {
             return {};
         }
@@ -153,63 +115,69 @@ ComicBook::Layout ComicBook::readLayout(const QString &path, const std::atomic_b
         if (archive_entry_filetype(entry) != AE_IFREG || !isPage(name)) {
             continue;
         }
+        if (archive_entry_is_encrypted(entry)) {
+            layout.locked = true; // password-protected: PageView says so instead of showing blank pages
+            return layout;
+        }
         QByteArray header = readData(reader.get(), HeaderBytes);
         QBuffer buffer(&header);
-        QImageReader imageReader(&buffer);
-        layout.entries.append(name);
-        layout.sizes.append(QSizeF(imageReader.size()));
+        pages.append({name, QSizeF(QImageReader(&buffer).size())});
     }
-    if (layout.entries.isEmpty()) {
+    if (pages.isEmpty()) {
         layout.failed = true;
         return layout;
     }
 
     // Pages in natural order ("page2" before "page10"), ties broken by the raw name.
     const QCollator collator = naturalCollator();
-    QList<qsizetype> order(layout.entries.size());
-    std::iota(order.begin(), order.end(), 0);
-    std::sort(order.begin(), order.end(), [&](qsizetype a, qsizetype b) {
-        const int c = collator.compare(layout.entries.at(a), layout.entries.at(b));
-        return c != 0 ? c < 0 : layout.entries.at(a) < layout.entries.at(b);
+    std::sort(pages.begin(), pages.end(), [&collator](const Page &a, const Page &b) {
+        return naturalLess(collator, a.entry, b.entry);
     });
-    Layout sorted;
-    QSizeF previous(2, 3); // a typical page shape, for pages whose header didn't tell
-    for (qsizetype i : std::as_const(order)) {
-        const QSizeF size = layout.sizes.at(i).isEmpty() ? previous : layout.sizes.at(i);
-        sorted.entries.append(layout.entries.at(i));
-        sorted.sizes.append(size);
-        previous = size;
+    QSizeF previous = FallbackPageShape; // for pages whose header didn't tell
+    for (const Page &page : std::as_const(pages)) {
+        previous = page.size.isEmpty() ? previous : page.size;
+        layout.entries.append(page.entry);
+        layout.sizes.append(previous);
     }
-    return sorted;
+    return layout;
 }
 
-QImage ComicBook::readPage(const QString &path, const QString &entryName, int width)
+QImage ComicBook::readPage(const QString &path, const QString &entryName, int width, const std::atomic_bool *cancelled)
 {
+    s_pageSlots.acquire();
+    const auto release = qScopeGuard([] {
+        s_pageSlots.release();
+    });
     const ArchivePtr reader = openArchive(path);
-    if (!reader) {
-        return {};
-    }
     archive_entry *entry = nullptr;
-    while (archive_read_next_header(reader.get(), &entry) == ARCHIVE_OK) {
+    while (reader && nextHeader(reader.get(), &entry)) {
+        if (cancelled && *cancelled) {
+            return {};
+        }
         if (entryPath(entry) != entryName) {
             continue;
         }
-        if (archive_entry_size(entry) > MaxPageBytes) {
+        if (archive_entry_size(entry) > maxPageBytes()) {
+            qWarning() << "Comic book page" << entryName << "is too large to show";
             return {};
         }
-        QByteArray data = readData(reader.get(), MaxPageBytes);
+        QByteArray data = readData(reader.get(), maxPageBytes());
         QBuffer buffer(&data);
         QImageReader imageReader(&buffer);
         imageReader.setAutoTransform(true);
         const QSize size = imageReader.size();
         if (size.isValid() && width > 0) {
-            // Decode at the shown width (never larger than the page), within the same pixel budget as PDF pages.
-            const double maxPixels = isLowMemorySystem() ? 24e6 : 64e6;
-            const double scale = std::min({1.0, double(width) / size.width(), std::sqrt(maxPixels / (double(size.width()) * size.height()))});
+            // Decode at the shown width (never larger than the page), within the page pixel budget.
+            const double scale = std::min({1.0, double(width) / size.width(), std::sqrt(maxPagePixels() / (double(size.width()) * size.height()))});
             imageReader.setScaledSize((QSizeF(size) * scale).toSize());
         }
-        return imageReader.read();
+        QImage image = imageReader.read();
+        if (image.isNull()) {
+            qWarning() << "Comic book page" << entryName << "could not be decoded:" << imageReader.errorString();
+        }
+        return image;
     }
+    qWarning() << "Comic book page" << entryName << "was not found in" << path;
     return {};
 }
 
@@ -250,27 +218,42 @@ bool ComicBook::failed() const
     return m_layout.failed;
 }
 
+bool ComicBook::locked() const
+{
+    return m_layout.locked;
+}
+
 QSizeF ComicBook::pageSize(int page) const
 {
-    return m_layout.sizes.value(page, QSizeF(2, 3));
+    return m_layout.sizes.value(page, FallbackPageShape);
 }
 
 QString ComicBook::pageSource(int page) const
 {
-    // "<mtime>/<archive>/<entry>", both paths fully percent-encoded so neither contains a raw "/".
-    return QStringLiteral("image://%1/%2/%3/%4")
-        .arg(QLatin1String(ComicPageProvider::Id),
-             QString::number(m_mtime),
-             QString::fromLatin1(QUrl::toPercentEncoding(m_url.toLocalFile())),
-             QString::fromLatin1(QUrl::toPercentEncoding(m_layout.entries.value(page))));
+    return ArchiveImageProvider::source(m_url.toLocalFile(), m_mtime, m_layout.entries.value(page));
 }
 
-QQuickImageResponse *ComicPageProvider::requestImageResponse(const QString &id, const QSize &requestedSize)
+QString ArchiveImageProvider::source(const QString &archivePath, qint64 mtime, const QString &entry)
+{
+    // "<mtime>/<archive>/<entry>", both paths fully percent-encoded so neither contains a raw "/".
+    // The mtime makes an edited archive a new image.
+    return QStringLiteral("image://%1/%2/%3/%4")
+        .arg(QLatin1String(Id),
+             QString::number(mtime),
+             QString::fromLatin1(QUrl::toPercentEncoding(archivePath)),
+             QString::fromLatin1(QUrl::toPercentEncoding(entry)));
+}
+
+QQuickImageResponse *ArchiveImageProvider::requestImageResponse(const QString &id, const QSize &requestedSize)
 {
     // Qt may hand the id over partly percent-decoded, but it keeps "%2F", so splitting on "/" is safe.
     const QStringList parts = id.split(QLatin1Char('/'));
-    auto *response =
-        new PageResponse(QUrl::fromPercentEncoding(parts.value(1).toUtf8()), QUrl::fromPercentEncoding(parts.value(2).toUtf8()), requestedSize.width());
+    // "::" because the provider base class has an enum value named ImageResponse.
+    auto *response = new ::ImageResponse([path = QUrl::fromPercentEncoding(parts.value(1).toUtf8()),
+                                          entry = QUrl::fromPercentEncoding(parts.value(2).toUtf8()),
+                                          width = requestedSize.width()](const std::atomic_bool &cancelled) {
+        return ComicBook::readPage(path, entry, width, &cancelled);
+    });
     workerPool()->start(response);
     return response;
 }

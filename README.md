@@ -14,7 +14,7 @@ and [Sushi](https://gitlab.gnome.org/GNOME/sushi) is to GNOME Files.
 |---|---|
 | Images (JPEG, PNG, WebP, AVIF, JXL, HEIC, SVG…) and GIF/WebP animations | Fitted to the window |
 | PDF | Every page, with scrolling, a page counter and zoom |
-| Office documents (docx, odt, xlsx, ods, pptx, odp, doc, rtf…) | Rendered through LibreOffice, then cached |
+| Office documents (docx, odt, xlsx, ods, pptx, odp, doc, rtf…) | Every page, rendered through LibreOffice and cached. The Flatpak, which stays sandboxed, shows the first-page picture stored in the document |
 | Video and audio | Starts playing immediately; seek bar, mute, and title/artist for audio |
 | Source code and text | Syntax highlighting that follows your color scheme |
 | Markdown | Rendered, with a source toggle |
