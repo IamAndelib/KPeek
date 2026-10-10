@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <QFutureWatcher>
 #include <QList>
 #include <QObject>
 #include <QQmlEngine>
@@ -25,7 +26,7 @@ class PdfDocument : public QObject
     Q_PROPERTY(bool locked READ locked NOTIFY loaded)
 
 public:
-    using QObject::QObject;
+    explicit PdfDocument(QObject *parent = nullptr);
 
     QUrl url() const;
     void setUrl(const QUrl &url);
@@ -43,11 +44,20 @@ Q_SIGNALS:
     void urlChanged();
     void loaded();
 
+public:
+    struct Layout {
+        QList<QSizeF> pageSizes;
+        bool failed = false;
+        bool locked = false;
+    };
+    /// Opens the document (shared with the page renderer) and reads its page sizes. Runs on the worker pool.
+    static Layout readLayout(const QString &key);
+
 private:
     QUrl m_url;
-    QList<QSizeF> m_pageSizes;
-    bool m_failed = false;
-    bool m_locked = false;
+    QString m_key; ///< "<mtime>/<percent-encoded path>", so an edited file never renders stale pages
+    Layout m_layout;
+    QFutureWatcher<Layout> m_watcher;
 };
 
 class PdfPageProvider : public QQuickAsyncImageProvider

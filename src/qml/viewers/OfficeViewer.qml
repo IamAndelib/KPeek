@@ -5,12 +5,16 @@ import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
-import org.kde.kpeek
+import io.github.iamandelib.kpeek
 
 // Office documents are converted to PDF with LibreOffice, then shown like any PDF.
 Rectangle {
+    id: root
+
+    property real zoom: 1.0
+    readonly property Flickable scrollTarget: pdfLoader.item?.scrollTarget ?? null
+
     color: Kirigami.Theme.backgroundColor
-    focus: true
 
     OfficeConverter {
         id: converter
@@ -18,11 +22,12 @@ Rectangle {
     }
 
     Loader {
+        id: pdfLoader
         anchors.fill: parent
-        focus: true
         active: converter.status === OfficeConverter.Ready
         sourceComponent: PdfView {
             url: converter.pdfUrl
+            zoom: root.zoom
         }
     }
 

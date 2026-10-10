@@ -17,11 +17,14 @@ class TextLoader : public QObject
     Q_PROPERTY(QString text READ text NOTIFY loaded)
     Q_PROPERTY(bool truncated READ truncated NOTIFY loaded)
     Q_PROPERTY(bool failed READ failed NOTIFY loaded)
+    /// False for text too big to syntax-highlight without stalling the UI.
+    Q_PROPERTY(bool highlight READ highlight NOTIFY loaded)
 
 public:
     using QObject::QObject;
 
     static constexpr qint64 MaxBytes = 2 * 1024 * 1024;
+    static constexpr qint64 MaxHighlightChars = 512 * 1024;
 
     QUrl url() const;
     void setUrl(const QUrl &url);
@@ -29,9 +32,11 @@ public:
     QString text() const;
     bool truncated() const;
     bool failed() const;
+    bool highlight() const;
 
-    /// Decodes using a BOM if present, else UTF-8, falling back to the locale encoding.
-    static QString decode(const QByteArray &data);
+    /// Decodes using a BOM if present, else UTF-8, falling back to Latin-1 for legacy 8-bit files.
+    /// @p complete is false when @p data was cut off, so a character split at the end isn't an error.
+    static QString decode(const QByteArray &data, bool complete = true);
 
 Q_SIGNALS:
     void urlChanged();

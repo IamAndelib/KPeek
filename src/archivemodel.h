@@ -4,25 +4,29 @@
 #pragma once
 
 #include <QAbstractListModel>
-#include <QDateTime>
 #include <QFutureWatcher>
 #include <QQmlEngine>
 #include <QUrl>
 
+#include <atomic>
+#include <memory>
+
 struct ArchiveEntry {
     QString path;
-    qint64 size = 0;
+    QString iconName;
+    QString sizeText;
     bool isDir = false;
-    QDateTime modified;
 };
 
 struct ArchiveListing {
     QList<ArchiveEntry> entries;
+    int fileCount = 0;
+    qint64 totalSize = 0;
     bool failed = false;
     bool truncated = false;
 };
 
-/// Flat listing of an archive's contents (zip, tar.*, 7z, ar), read in a worker thread.
+/// Flat listing of an archive's contents (zip, tar.*, 7z, ar), read on the worker pool.
 class ArchiveModel : public QAbstractListModel
 {
     Q_OBJECT
@@ -34,7 +38,7 @@ class ArchiveModel : public QAbstractListModel
     Q_PROPERTY(bool truncated READ truncated NOTIFY statusChanged)
     Q_PROPERTY(int fileCount READ fileCount NOTIFY statusChanged)
     Q_PROPERTY(QString totalSizeText READ totalSizeText NOTIFY statusChanged)
-    Q_PROPERTY(int maxEntries MEMBER s_maxEntries CONSTANT)
+    Q_PROPERTY(int maxEntries READ maxEntries CONSTANT)
 
 public:
     enum Roles {
@@ -42,14 +46,13 @@ public:
         NameRole,
         DepthRole,
         SizeTextRole,
-        IsDirRole,
         IconNameRole,
     };
 
     static constexpr int MaxEntries = 20000;
-    static constexpr int s_maxEntries = MaxEntries; // for QML
 
     explicit ArchiveModel(QObject *parent = nullptr);
+    ~ArchiveModel() override;
 
     int rowCount(const QModelIndex &parent = {}) const override;
     QVariant data(const QModelIndex &index, int role) const override;
@@ -63,9 +66,11 @@ public:
     bool truncated() const;
     int fileCount() const;
     QString totalSizeText() const;
+    int maxEntries() const;
 
-    /// Reads the archive at @p path; entries are sorted by path, folders before their contents.
-    static ArchiveListing list(const QString &path, const QString &mimeType);
+    /// Reads the archive at @p path, stopping early once @p cancelled is set.
+    /// Entries are sorted by path with folders before files, each folder directly above its contents.
+    static ArchiveListing list(const QString &path, const std::atomic_bool &cancelled = std::atomic_bool(false));
 
 Q_SIGNALS:
     void urlChanged();
@@ -75,5 +80,6 @@ private:
     QUrl m_url;
     ArchiveListing m_listing;
     bool m_loading = false;
+    std::shared_ptr<std::atomic_bool> m_cancelled;
     QFutureWatcher<ArchiveListing> m_watcher;
 };

@@ -11,7 +11,9 @@
 #include <QCoreApplication>
 #include <QDesktopServices>
 #include <QDir>
+#include <QDirIterator>
 #include <QFileInfo>
+#include <QImageReader>
 #include <QMimeDatabase>
 #include <QQuickWindow>
 
@@ -116,16 +118,32 @@ void PeekController::updateCurrent()
     const QFileInfo info(current.toLocalFile());
     const QMimeType mime = QMimeDatabase().mimeTypeForUrl(current);
 
-    m_viewer = ViewerResolver::viewerForFile(info.absoluteFilePath(), mime);
+    // Remote and virtual URLs (smb:, trash:, http:) only get the info card: viewers read local files.
+    m_viewer = current.isLocalFile() ? ViewerResolver::viewerForFile(info, mime) : QStringLiteral("Info");
     m_mimeType = mime.name();
     m_mimeComment = mime.comment();
     m_iconName = mime.iconName();
     m_isFolder = info.isDir();
     m_modified = info.lastModified();
 
+    m_imageSize = {};
+    m_animated = false;
+    if (m_viewer == QLatin1String("Image")) {
+        // Reads only the header: cheap even for huge photos.
+        QImageReader reader(info.absoluteFilePath());
+        m_imageSize = reader.size();
+        if (reader.transformation() & QImageIOHandler::TransformationRotate90) {
+            m_imageSize.transpose();
+        }
+        m_animated = reader.supportsAnimation() && reader.imageCount() != 1; // 0 means "unknown"
+    }
+
     if (m_isFolder) {
-        const int entries = QDir(info.absoluteFilePath()).count() - 2; // minus "." and ".."
-        m_sizeText = i18ncp("@info folder contents", "%1 item", "%1 items", qMax(0, entries));
+        int entries = 0;
+        for (QDirIterator it(info.absoluteFilePath(), QDir::AllEntries | QDir::NoDotAndDotDot | QDir::Hidden | QDir::System); it.hasNext(); it.next()) {
+            ++entries;
+        }
+        m_sizeText = i18ncp("@info folder contents", "%1 item", "%1 items", entries);
     } else {
         m_sizeText = KFormat().formatByteSize(info.size());
     }
@@ -186,6 +204,16 @@ int PeekController::index() const
 int PeekController::count() const
 {
     return m_navigator.count();
+}
+
+QSize PeekController::imageSize() const
+{
+    return m_imageSize;
+}
+
+bool PeekController::animated() const
+{
+    return m_animated;
 }
 
 #include "moc_peekcontroller.cpp"

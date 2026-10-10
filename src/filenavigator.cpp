@@ -8,6 +8,7 @@
 #include <QFileInfo>
 
 #include <algorithm>
+#include <vector>
 
 void FileNavigator::setSelection(const QList<QUrl> &urls)
 {
@@ -26,7 +27,7 @@ void FileNavigator::setSelection(const QList<QUrl> &urls)
     }
 
     const QUrl url = urls.first();
-    m_items = siblings(url);
+    m_items = cachedSiblings(url);
     m_index = m_items.indexOf(url);
     if (m_index < 0) {
         // Hidden or unlistable file: still preview it, just without siblings.
@@ -80,31 +81,59 @@ bool FileNavigator::matchesSelection(const QList<QUrl> &urls) const
     return urls == m_selection;
 }
 
+QList<QUrl> FileNavigator::cachedSiblings(const QUrl &url)
+{
+    if (!url.isLocalFile()) {
+        return {url};
+    }
+    const QFileInfo dir(QFileInfo(url.toLocalFile()).absolutePath());
+    if (dir.absoluteFilePath() != m_cachedDir || dir.lastModified() != m_cachedDirModified) {
+        m_cachedDir = dir.absoluteFilePath();
+        m_cachedDirModified = dir.lastModified();
+        m_cachedSiblings = siblings(url);
+    }
+    return m_cachedSiblings;
+}
+
 QList<QUrl> FileNavigator::siblings(const QUrl &url)
 {
     if (!url.isLocalFile()) {
         return {url};
     }
 
-    const QFileInfo info(url.toLocalFile());
-    const QDir dir = info.absoluteDir();
-    QFileInfoList entries = dir.entryInfoList(QDir::AllEntries | QDir::NoDotAndDotDot | QDir::System);
+    const QDir dir = QFileInfo(url.toLocalFile()).absoluteDir();
+    // NoSort: we sort ourselves below; QDir's own name sort would just be thrown away.
+    const QFileInfoList entries = dir.entryInfoList(QDir::AllEntries | QDir::NoDotAndDotDot | QDir::System, QDir::NoSort);
 
     QCollator collator;
     collator.setNumericMode(true);
     collator.setCaseSensitivity(Qt::CaseInsensitive);
 
-    std::sort(entries.begin(), entries.end(), [&collator](const QFileInfo &a, const QFileInfo &b) {
-        if (a.isDir() != b.isDir()) {
-            return a.isDir();
+    // Collation keys are computed once per file; comparing them is cheap even for 100k files.
+    struct Item {
+        bool isDir;
+        QCollatorSortKey key;
+        QString name;
+        QString path;
+    };
+    std::vector<Item> items;
+    items.reserve(entries.size());
+    for (const QFileInfo &entry : entries) {
+        items.push_back({entry.isDir(), collator.sortKey(entry.fileName()), entry.fileName(), entry.absoluteFilePath()});
+    }
+
+    std::sort(items.begin(), items.end(), [](const Item &a, const Item &b) {
+        if (a.isDir != b.isDir) {
+            return a.isDir;
         }
-        return collator.compare(a.fileName(), b.fileName()) < 0;
+        const int order = a.key.compare(b.key);
+        return order != 0 ? order < 0 : a.name < b.name; // "A" vs "a": keep the order strict
     });
 
     QList<QUrl> result;
-    result.reserve(entries.size());
-    for (const QFileInfo &entry : std::as_const(entries)) {
-        result.append(QUrl::fromLocalFile(entry.absoluteFilePath()));
+    result.reserve(items.size());
+    for (const Item &item : items) {
+        result.append(QUrl::fromLocalFile(item.path));
     }
     return result;
 }

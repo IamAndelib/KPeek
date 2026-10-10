@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <QDateTime>
 #include <QList>
 #include <QUrl>
 
@@ -33,6 +34,14 @@ public:
     static QList<QUrl> siblings(const QUrl &url);
 
 private:
+    /// siblings(), reusing the previous listing while the folder is unchanged:
+    /// every key press in Dolphin re-invokes KPeek, and sorting a 100k-file folder isn't free.
+    QList<QUrl> cachedSiblings(const QUrl &url);
+
+    QString m_cachedDir;
+    QDateTime m_cachedDirModified;
+    QList<QUrl> m_cachedSiblings;
+
     QList<QUrl> m_selection;
     QList<QUrl> m_items;
     int m_index = -1;

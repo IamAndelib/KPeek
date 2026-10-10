@@ -5,7 +5,7 @@ import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
-import org.kde.kpeek
+import io.github.iamandelib.kpeek
 
 // Fallback for folders and files without a dedicated viewer: a summary card.
 Rectangle {

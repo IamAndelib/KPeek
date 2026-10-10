@@ -20,6 +20,7 @@ private Q_SLOTS:
     void testMultiSelectionBrowsesOnlySelection();
     void testStepWraps();
     void testMatchesSelection();
+    void testCaseOnlyDifference();
 
 private:
     QUrl urlFor(const QString &name) const;
@@ -105,6 +106,18 @@ void FileNavigatorTest::testMatchesSelection()
     const QList<QUrl> multi = {urlFor(QStringLiteral("b.txt")), urlFor(QStringLiteral("A2.txt"))};
     nav.setSelection(multi);
     QVERIFY(nav.matchesSelection(multi));
+}
+
+void FileNavigatorTest::testCaseOnlyDifference()
+{
+    // Names equal under case-insensitive collation still get a fixed, strict order.
+    QTemporaryDir dir;
+    for (const char *name : {"b.txt", "B.txt"}) {
+        QFile file(dir.filePath(QString::fromLatin1(name)));
+        QVERIFY(file.open(QIODevice::WriteOnly));
+    }
+    const QList<QUrl> siblings = FileNavigator::siblings(QUrl::fromLocalFile(dir.filePath(QStringLiteral("b.txt"))));
+    QCOMPARE(siblings, (QList<QUrl>{QUrl::fromLocalFile(dir.filePath(QStringLiteral("B.txt"))), QUrl::fromLocalFile(dir.filePath(QStringLiteral("b.txt")))}));
 }
 
 QTEST_GUILESS_MAIN(FileNavigatorTest)

@@ -5,13 +5,16 @@ import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
-import org.kde.kpeek
+import io.github.iamandelib.kpeek
 
 // Font specimen: the family name, the alphabet and a pangram at several sizes.
 Rectangle {
+    id: root
+
+    property real zoom: 1.0
+    readonly property Flickable scrollTarget: scroll.contentItem as Flickable
+
     color: Kirigami.Theme.backgroundColor
-    focus: true
-    Keys.onPressed: event => ScrollKeys.handle(event, scroll.contentItem)
 
     FontLoader {
         id: loader
@@ -39,7 +42,7 @@ Rectangle {
                 text: "ABCDEFGHIJKLMNOPQRSTUVWXYZ\nabcdefghijklmnopqrstuvwxyz\n0123456789 .,;:!?&@#%()[]{}"
                 font.family: loader.font.family
                 font.styleName: loader.font.styleName
-                font.pointSize: 18
+                font.pointSize: 18 * root.zoom
                 wrapMode: Text.Wrap
                 Layout.fillWidth: true
                 Layout.leftMargin: Kirigami.Units.gridUnit
@@ -54,7 +57,7 @@ Rectangle {
                     text: i18nc("@info font sample pangram", "The quick brown fox jumps over the lazy dog")
                     font.family: loader.font.family
                     font.styleName: loader.font.styleName
-                    font.pointSize: modelData
+                    font.pointSize: modelData * root.zoom
                     elide: Text.ElideRight
                     Layout.fillWidth: true
                     Layout.leftMargin: Kirigami.Units.gridUnit

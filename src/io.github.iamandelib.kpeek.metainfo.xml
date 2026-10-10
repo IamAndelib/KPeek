@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+SPDX-License-Identifier: CC0-1.0
+SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
+-->
+<component type="desktop-application">
+  <id>io.github.iamandelib.kpeek</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-2.0-or-later</project_license>
+  <name>KPeek</name>
+  <summary>Quick file previews for Dolphin</summary>
+  <developer id="io.github.iamandelib">
+    <name>Andelib Taref Srizon</name>
+  </developer>
+  <description>
+    <p>
+      KPeek brings Quick Look to KDE's file manager. Select a file in Dolphin, press Meta+Space,
+      and a preview appears. Use the arrow keys or the mouse wheel to move through the folder,
+      and press the shortcut again to close it.
+    </p>
+    <p>It previews:</p>
+    <ul>
+      <li>Images, including animated GIF and WebP</li>
+      <li>PDF documents</li>
+      <li>Office documents, rendered through LibreOffice when it is installed</li>
+      <li>Video and audio</li>
+      <li>Source code and text with syntax highlighting, and rendered Markdown</li>
+      <li>The contents of zip, tar and 7z archives</li>
+      <li>Fonts</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">io.github.iamandelib.kpeek.desktop</launchable>
+  <url type="homepage">https://github.com/IamAndelib/KPeek</url>
+  <url type="bugtracker">https://github.com/IamAndelib/KPeek/issues</url>
+  <url type="vcs-browser">https://github.com/IamAndelib/KPeek</url>
+  <categories>
+    <category>Utility</category>
+  </categories>
+  <content_rating type="oars-1.1"/>
+  <branding>
+    <color type="primary" scheme_preference="light">#93cee9</color>
+    <color type="primary" scheme_preference="dark">#1d4f6b</color>
+  </branding>
+  <requires>
+    <display_length compare="ge">360</display_length>
+  </requires>
+  <supports>
+    <control>keyboard</control>
+    <control>pointing</control>
+  </supports>
+  <releases>
+    <release version="0.1.0" date="2026-10-11">
+      <description>
+        <p>First release.</p>
+      </description>
+    </release>
+  </releases>
+</component>

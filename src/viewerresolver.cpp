@@ -4,7 +4,6 @@
 #include "viewerresolver.h"
 
 #include <QFile>
-#include <QFileInfo>
 #include <QImageReader>
 #include <QStringDecoder>
 
@@ -115,15 +114,16 @@ QString ViewerResolver::viewerFor(const QMimeType &mime)
     return QStringLiteral("Info");
 }
 
-QString ViewerResolver::viewerForFile(const QString &path, const QMimeType &mime)
+QString ViewerResolver::viewerForFile(const QFileInfo &file, const QMimeType &mime)
 {
     const QString viewer = viewerFor(mime);
-    if (viewer != QLatin1String("Info") || !QFileInfo(path).isFile()) {
+    // isFile() also keeps FIFOs and devices out: reading those could block forever.
+    if (viewer != QLatin1String("Info") || !file.isFile() || file.size() == 0) {
         return viewer;
     }
 
-    QFile file(path);
-    if (file.size() > 0 && file.open(QIODevice::ReadOnly) && looksLikeText(file.read(4096))) {
+    QFile handle(file.absoluteFilePath());
+    if (handle.open(QIODevice::ReadOnly) && looksLikeText(handle.read(4096))) {
         return QStringLiteral("Text");
     }
     return viewer;

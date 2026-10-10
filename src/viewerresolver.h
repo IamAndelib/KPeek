@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <QFileInfo>
 #include <QMimeType>
 #include <QString>
 
@@ -12,7 +13,7 @@ namespace ViewerResolver
 QString viewerFor(const QMimeType &mime);
 
 /// Like viewerFor(), but files of unknown type that look like plain text get the text viewer.
-QString viewerForFile(const QString &path, const QMimeType &mime);
+QString viewerForFile(const QFileInfo &file, const QMimeType &mime);
 
 /// True when @p data has no NUL bytes and decodes as UTF-8.
 bool looksLikeText(const QByteArray &data);

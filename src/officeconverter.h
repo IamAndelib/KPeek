@@ -4,16 +4,18 @@
 #pragma once
 
 #include <QObject>
-#include <QPointer>
-#include <QProcess>
 #include <QQmlEngine>
 #include <QUrl>
 
 /**
- * Converts office documents to PDF with LibreOffice so the PDF viewer can show them,
- * the same approach GNOME Sushi takes. Uses a native LibreOffice or the Flathub one, and
- * reaches the host's through flatpak-spawn when KPeek itself runs as a Flatpak.
- * Results are cached by path, size and modification time.
+ * Shows office documents by converting them to PDF with LibreOffice, the same approach
+ * GNOME Sushi takes. Uses a native LibreOffice or the Flathub one, reaching the host's
+ * through flatpak-spawn when KPeek itself runs as a Flatpak.
+ *
+ * Conversions run one at a time in a shared queue and are cached by path, size and
+ * modification time. A started conversion keeps running when the user moves on, so coming
+ * back is instant and LibreOffice is never killed halfway (which would leave it orphaned);
+ * queued ones nobody waits for any more are dropped.
  */
 class OfficeConverter : public QObject
 {
@@ -43,8 +45,11 @@ public:
     QUrl pdfUrl() const;
     Status status() const;
 
-    /// Command prefix that runs LibreOffice's soffice, or empty when none is installed.
+    /// Command prefix that runs LibreOffice's soffice, or empty when none is installed. Blocking; call off the GUI thread.
     static QStringList sofficeCommand();
+
+    /// Deletes cached conversions older than a month. Blocking; call off the GUI thread.
+    static void pruneCache();
 
 Q_SIGNALS:
     void sourceChanged();
@@ -52,10 +57,8 @@ Q_SIGNALS:
 
 private:
     void setStatus(Status status);
-    void stopProcess();
 
     QUrl m_source;
-    QUrl m_pdfUrl;
+    QString m_pdfPath;
     Status m_status = Idle;
-    QPointer<QProcess> m_process;
 };

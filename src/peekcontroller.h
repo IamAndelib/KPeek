@@ -7,6 +7,7 @@
 #include <QObject>
 #include <QPointer>
 #include <QQmlEngine>
+#include <QSize>
 #include <QTimer>
 #include <QUrl>
 
@@ -38,6 +39,8 @@ class PeekController : public QObject
     Q_PROPERTY(QDateTime modified READ modified NOTIFY currentChanged)
     Q_PROPERTY(int index READ index NOTIFY currentChanged)
     Q_PROPERTY(int count READ count NOTIFY currentChanged)
+    Q_PROPERTY(QSize imageSize READ imageSize NOTIFY currentChanged)
+    Q_PROPERTY(bool animated READ animated NOTIFY currentChanged)
 
 public:
     // Not default-constructible on purpose: QML must use create() and get the one instance from main().
@@ -62,6 +65,8 @@ public:
     QDateTime modified() const;
     int index() const;
     int count() const;
+    QSize imageSize() const;
+    bool animated() const;
 
 public Q_SLOTS:
     void next();
@@ -87,4 +92,6 @@ private:
     bool m_isFolder = false;
     QString m_sizeText;
     QDateTime m_modified;
+    QSize m_imageSize; ///< natural size, EXIF orientation applied; only set for the image viewer
+    bool m_animated = false;
 };

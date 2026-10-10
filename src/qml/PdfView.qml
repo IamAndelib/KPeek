@@ -5,7 +5,7 @@ import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
-import org.kde.kpeek
+import io.github.iamandelib.kpeek
 
 // Scrollable page list for a PDF; shared by the PDF viewer and converted office documents.
 Rectangle {
@@ -13,22 +13,27 @@ Rectangle {
 
     property alias url: document.url
     property real zoom: 1.0
+    readonly property Flickable scrollTarget: view
     readonly property real fitWidth: Math.max(Kirigami.Units.gridUnit * 10, view.width - Kirigami.Units.largeSpacing * 2)
     readonly property real pageWidth: fitWidth * zoom
+    // Render width in device pixels: rounded up to 256 px steps so resizing the window
+    // doesn't re-render every page, and capped to bound memory when zoomed in.
+    readonly property int renderWidth: Math.min(4096, Math.ceil(pageWidth * Screen.devicePixelRatio / 256) * 256)
+
+    // Keep the point at the center of the view in place while zooming.
+    property real lastZoom: 1.0
+    onZoomChanged: {
+        const ratio = zoom / lastZoom;
+        lastZoom = zoom;
+        const cx = view.contentX + view.width / 2;
+        const cy = view.contentY - view.originY + view.height / 2;
+        Qt.callLater(() => {
+            view.contentX = Math.max(0, Math.min(cx * ratio - view.width / 2, view.contentWidth - view.width));
+            view.contentY = view.originY + Math.max(0, Math.min(cy * ratio - view.height / 2, view.contentHeight - view.height));
+        });
+    }
 
     color: Kirigami.Theme.alternateBackgroundColor
-    focus: true
-    Keys.onPressed: event => {
-        if (event.key === Qt.Key_Plus || event.key === Qt.Key_Equal) {
-            root.zoom = Math.min(4, root.zoom * 1.25);
-            event.accepted = true;
-        } else if (event.key === Qt.Key_Minus) {
-            root.zoom = Math.max(0.25, root.zoom / 1.25);
-            event.accepted = true;
-        } else {
-            ScrollKeys.handle(event, view);
-        }
-    }
 
     PdfDocument {
         id: document
@@ -69,7 +74,7 @@ Rectangle {
                 Image {
                     anchors.fill: parent
                     source: document.pageSource(index)
-                    sourceSize.width: Math.round(page.width * Screen.devicePixelRatio)
+                    sourceSize.width: root.renderWidth
                     asynchronous: true
                     cache: false
                     retainWhileLoading: true
@@ -78,7 +83,7 @@ Rectangle {
         }
     }
 
-    // Page position and zoom controls.
+    // Page position.
     Rectangle {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
@@ -96,27 +101,12 @@ Rectangle {
             spacing: Kirigami.Units.smallSpacing
 
             QQC2.Label {
-                readonly property int current: Math.max(0, view.indexAt(view.width / 2, view.contentY + view.height / 2))
+                property int current: 0
+                // indexAt() is -1 in the gap between pages; keep the last page then.
+                readonly property int probe: view.indexAt(view.contentX + view.width / 2, view.contentY + view.height / 2)
+                onProbeChanged: if (probe >= 0) current = probe
                 text: i18nc("@info page position", "Page %1 of %2", current + 1, document.pageCount)
-                Layout.leftMargin: Kirigami.Units.smallSpacing
-            }
-            QQC2.ToolButton {
-                icon.name: "zoom-out"
-                display: QQC2.AbstractButton.IconOnly
-                text: i18nc("@action:button", "Zoom Out")
-                onClicked: root.zoom = Math.max(0.25, root.zoom / 1.25)
-            }
-            QQC2.ToolButton {
-                icon.name: "zoom-fit-width"
-                display: QQC2.AbstractButton.IconOnly
-                text: i18nc("@action:button", "Fit Width")
-                onClicked: root.zoom = 1.0
-            }
-            QQC2.ToolButton {
-                icon.name: "zoom-in"
-                display: QQC2.AbstractButton.IconOnly
-                text: i18nc("@action:button", "Zoom In")
-                onClicked: root.zoom = Math.min(4, root.zoom * 1.25)
+                Layout.margins: Kirigami.Units.smallSpacing
             }
         }
     }

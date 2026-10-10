@@ -18,6 +18,8 @@ include(KDECompilerSettings NO_POLICY_SCOPE)
 include(KDEClangFormat)
 include(KDEGitCommitHooks)
 include(ECMSetupVersion)
+include(ECMInstallIcons)
+include(ECMDeprecationSettings)
 include(FeatureSummary)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -25,7 +27,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 ecm_setup_version(${PROJECT_VERSION} VARIABLE_PREFIX KPEEK VERSION_HEADER ${CMAKE_CURRENT_BINARY_DIR}/kpeek-version.h)
 
-find_package(Qt6 ${QT_MIN_VERSION} REQUIRED COMPONENTS Core Gui Widgets Concurrent Qml Quick QuickControls2 Test)
+find_package(Qt6 ${QT_MIN_VERSION} REQUIRED COMPONENTS Core Gui Widgets Concurrent Qml Quick QuickControls2)
 qt_standard_project_setup(REQUIRES 6.8)
 
 find_package(KF6 ${KF_MIN_VERSION} REQUIRED COMPONENTS CoreAddons I18n Crash DBusAddons WindowSystem Archive)
@@ -38,6 +40,8 @@ find_package(KF6SyntaxHighlighting ${KF_MIN_VERSION})
 set_package_properties(KF6SyntaxHighlighting PROPERTIES TYPE RUNTIME DESCRIPTION "Syntax highlighting in text previews")
 find_package(KF6Kirigami ${KF_MIN_VERSION})
 set_package_properties(KF6Kirigami PROPERTIES TYPE RUNTIME DESCRIPTION "QML UI framework used by the preview window")
+
+ecm_set_disabled_deprecation_versions(QT 6.8.0 KF 6.10.0)
 
 add_subdirectory(src)
 

@@ -6,7 +6,7 @@ import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import QtMultimedia
 import org.kde.kirigami as Kirigami
-import org.kde.kpeek
+import io.github.iamandelib.kpeek
 
 // Video and audio, played as soon as the preview opens.
 Rectangle {
@@ -40,8 +40,7 @@ Rectangle {
         audioOutput: AudioOutput {
             id: audio
         }
-        onSourceChanged: play()
-        Component.onCompleted: play()
+        autoPlay: true
     }
 
     ColumnLayout {
@@ -130,7 +129,8 @@ Rectangle {
                     Layout.fillWidth: true
                     from: 0
                     to: Math.max(1, player.duration)
-                    value: player.position
+                    // Don't fight the user while they drag the handle.
+                    value: pressed ? value : player.position
                     enabled: player.seekable
                     focusPolicy: Qt.NoFocus
                     onMoved: player.position = value

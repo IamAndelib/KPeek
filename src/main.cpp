@@ -4,6 +4,7 @@
 #include "kpeek-version.h"
 #include "pdfdocument.h"
 #include "peekcontroller.h"
+#include "workerpool.h"
 
 #include <KAboutData>
 #include <KCrash>
@@ -17,6 +18,8 @@
 #include <QQmlApplicationEngine>
 #include <QQuickStyle>
 #include <QQuickWindow>
+
+#include <cstdlib>
 
 namespace
 {
@@ -75,7 +78,7 @@ int main(int argc, char *argv[])
     QQmlApplicationEngine engine;
     KLocalization::setupLocalizedContext(&engine);
     engine.addImageProvider(QLatin1String(PdfPageProvider::Id), new PdfPageProvider);
-    engine.loadFromModule("org.kde.kpeek", "Main");
+    engine.loadFromModule("io.github.iamandelib.kpeek", "Main");
     auto *window = engine.rootObjects().isEmpty() ? nullptr : qobject_cast<QQuickWindow *>(engine.rootObjects().constFirst());
     if (!window) {
         return 1;
@@ -87,5 +90,13 @@ int main(int argc, char *argv[])
     });
 
     controller.showFiles(urls, false);
-    return app.exec();
+    const int exitCode = app.exec();
+
+    // Don't let quitting hang on background work that can't be interrupted (e.g. decompressing
+    // a huge tarball): that would keep the D-Bus name, so new previews would go to a dying process.
+    workerPool()->clear();
+    if (!workerPool()->waitForDone(2000)) {
+        std::quick_exit(exitCode);
+    }
+    return exitCode;
 }

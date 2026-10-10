@@ -4,7 +4,10 @@
 #include "viewerresolver.h"
 
 #include <QMimeDatabase>
+#include <QTemporaryDir>
 #include <QTest>
+
+#include <sys/stat.h>
 
 class ViewerResolverTest : public QObject
 {
@@ -14,6 +17,7 @@ private Q_SLOTS:
     void testViewer_data();
     void testViewer();
     void testLooksLikeText();
+    void testViewerForFile();
 };
 
 void ViewerResolverTest::testViewer_data()
@@ -56,6 +60,28 @@ void ViewerResolverTest::testLooksLikeText()
     QVERIFY(!ViewerResolver::looksLikeText(QByteArray("bin\0ary", 7)));
     QVERIFY(!ViewerResolver::looksLikeText("\xff\xfe\xfa"));
     QVERIFY(!ViewerResolver::looksLikeText(""));
+}
+
+void ViewerResolverTest::testViewerForFile()
+{
+    QTemporaryDir dir;
+    const QMimeType unknown = QMimeDatabase().mimeTypeForName(QStringLiteral("application/octet-stream"));
+
+    QFile text(dir.filePath(QStringLiteral("NOTES")));
+    QVERIFY(text.open(QIODevice::WriteOnly));
+    text.write("plain words\n");
+    text.close();
+    QCOMPARE(ViewerResolver::viewerForFile(QFileInfo(text.fileName()), unknown), QStringLiteral("Text"));
+
+    QFile empty(dir.filePath(QStringLiteral("EMPTY")));
+    QVERIFY(empty.open(QIODevice::WriteOnly));
+    empty.close();
+    QCOMPARE(ViewerResolver::viewerForFile(QFileInfo(empty.fileName()), unknown), QStringLiteral("Info"));
+
+    // Reading a FIFO would block forever; it must not even be opened.
+    const QByteArray fifo = QFile::encodeName(dir.filePath(QStringLiteral("pipe")));
+    QCOMPARE(::mkfifo(fifo.constData(), 0600), 0);
+    QCOMPARE(ViewerResolver::viewerForFile(QFileInfo(QString::fromLocal8Bit(fifo)), unknown), QStringLiteral("Info"));
 }
 
 QTEST_GUILESS_MAIN(ViewerResolverTest)

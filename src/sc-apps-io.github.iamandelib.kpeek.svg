@@ -1,0 +1,15 @@
+<!--
+SPDX-License-Identifier: CC0-1.0
+SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Document with a folded corner -->
+  <path d="M28 12h50l26 26v74a6 6 0 0 1-6 6H28a6 6 0 0 1-6-6V18a6 6 0 0 1 6-6z" fill="#eff0f1"/>
+  <path d="M78 12v20a6 6 0 0 0 6 6h20z" fill="#bdc3c7"/>
+  <path d="M28 12h50l26 26v74a6 6 0 0 1-6 6H28a6 6 0 0 1-6-6V18a6 6 0 0 1 6-6z" fill="none" stroke="#7f8c8d" stroke-width="2"/>
+  <!-- Eye -->
+  <path d="M30 78c9-15 21-22 34-22s25 7 34 22c-9 15-21 22-34 22S39 93 30 78z" fill="#3daee9"/>
+  <circle cx="64" cy="78" r="13" fill="#ffffff"/>
+  <circle cx="64" cy="78" r="7" fill="#1d4f6b"/>
+  <circle cx="60" cy="74" r="2.5" fill="#ffffff"/>
+</svg>

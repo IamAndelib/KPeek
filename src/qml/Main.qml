@@ -5,7 +5,7 @@ import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
-import org.kde.kpeek
+import io.github.iamandelib.kpeek
 
 QQC2.ApplicationWindow {
     id: root
@@ -33,6 +33,7 @@ QQC2.ApplicationWindow {
                 display: QQC2.AbstractButton.IconOnly
                 text: i18nc("@action:button", "Previous")
                 enabled: PeekController.count > 1
+                focusPolicy: Qt.NoFocus
                 onClicked: PeekController.previous()
                 QQC2.ToolTip.text: text
                 QQC2.ToolTip.visible: hovered
@@ -42,6 +43,7 @@ QQC2.ApplicationWindow {
                 display: QQC2.AbstractButton.IconOnly
                 text: i18nc("@action:button", "Next")
                 enabled: PeekController.count > 1
+                focusPolicy: Qt.NoFocus
                 onClicked: PeekController.next()
                 QQC2.ToolTip.text: text
                 QQC2.ToolTip.visible: hovered
@@ -66,13 +68,67 @@ QQC2.ApplicationWindow {
                 opacity: 0.7
             }
 
+            // Zoom controls, for every viewer where zooming means something.
+            RowLayout {
+                visible: input.zoomable
+                spacing: 0
+
+                QQC2.ToolButton {
+                    icon.name: "zoom-out"
+                    display: QQC2.AbstractButton.IconOnly
+                    text: i18nc("@action:button", "Zoom Out (Ctrl+−)")
+                    enabled: input.zoom > input.minZoom
+                    focusPolicy: Qt.NoFocus
+                    onClicked: input.zoomBy(-1)
+                    QQC2.ToolTip.text: text
+                    QQC2.ToolTip.visible: hovered
+                }
+                QQC2.Label {
+                    text: i18nc("@info zoom level", "%1%", Math.round(input.zoom * 100))
+                    horizontalAlignment: Text.AlignHCenter
+                    font.features: { "tnum": 1 }
+                    Layout.minimumWidth: Kirigami.Units.gridUnit * 3
+                }
+                QQC2.ToolButton {
+                    icon.name: "zoom-in"
+                    display: QQC2.AbstractButton.IconOnly
+                    text: i18nc("@action:button", "Zoom In (Ctrl++)")
+                    enabled: input.zoom < input.maxZoom
+                    focusPolicy: Qt.NoFocus
+                    onClicked: input.zoomBy(1)
+                    QQC2.ToolTip.text: text
+                    QQC2.ToolTip.visible: hovered
+                }
+                QQC2.ToolButton {
+                    icon.name: "zoom-original"
+                    display: QQC2.AbstractButton.IconOnly
+                    text: i18nc("@action:button", "Reset Zoom (Ctrl+0)")
+                    visible: Math.abs(input.zoom - 1) > 0.001
+                    focusPolicy: Qt.NoFocus
+                    onClicked: input.zoom = 1
+                    QQC2.ToolTip.text: text
+                    QQC2.ToolTip.visible: hovered
+                }
+            }
+
             QQC2.ToolButton {
                 icon.name: "document-open"
                 text: i18nc("@action:button", "Open")
+                focusPolicy: Qt.NoFocus
                 onClicked: PeekController.openExternally()
                 QQC2.ToolTip.text: i18nc("@info:tooltip", "Open with the default application (Enter)")
                 QQC2.ToolTip.visible: hovered
             }
+        }
+    }
+
+    // A fresh viewer for every file, so no state (scroll position, zoom, toggles) leaks into the next one.
+    Connections {
+        target: PeekController
+        function onCurrentChanged() {
+            input.zoom = 1;
+            viewerLoader.source = "";
+            viewerLoader.source = Qt.resolvedUrl("viewers/%1Viewer.qml".arg(PeekController.viewer));
         }
     }
 
@@ -82,7 +138,31 @@ QQC2.ApplicationWindow {
         focus: true
         // Unloaded while hidden so closing the preview stops video and audio playback.
         active: root.visible
-        source: PeekController.viewer.length > 0 ? Qt.resolvedUrl("viewers/%1Viewer.qml".arg(PeekController.viewer)) : ""
+        onLoaded: {
+            if ("zoom" in item) {
+                item.zoom = Qt.binding(() => input.zoom);
+            }
+        }
+        Keys.onPressed: event => input.handleKey(event)
+    }
+
+    ViewerInput {
+        id: input
+        anchors.fill: viewerLoader
+        viewer: viewerLoader.item
+    }
+
+    Shortcut {
+        sequences: [StandardKey.ZoomIn, "Ctrl+="]
+        onActivated: input.zoomBy(1)
+    }
+    Shortcut {
+        sequences: [StandardKey.ZoomOut]
+        onActivated: input.zoomBy(-1)
+    }
+    Shortcut {
+        sequences: ["Ctrl+0"]
+        onActivated: input.zoom = 1
     }
 
     Shortcut {

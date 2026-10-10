@@ -5,19 +5,16 @@ import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
-import org.kde.syntaxhighlighting
-import org.kde.kpeek
+import io.github.iamandelib.kpeek
 
 // Plain text and source code with syntax highlighting.
 Rectangle {
     id: root
 
-    // Highlighting megabytes of text takes seconds; beyond this the text is shown plain.
-    readonly property int highlightLimit: 512 * 1024
+    property real zoom: 1.0
+    readonly property Flickable scrollTarget: scroll.contentItem as Flickable
 
     color: Kirigami.Theme.backgroundColor
-    focus: true
-    Keys.onPressed: event => ScrollKeys.handle(event, scroll.contentItem)
 
     TextLoader {
         id: loader
@@ -41,23 +38,13 @@ Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
 
-            QQC2.TextArea {
-                id: area
+            SourceText {
                 text: loader.text
-                textFormat: TextEdit.PlainText
-                readOnly: true
-                selectByMouse: true
-                wrapMode: TextEdit.Wrap
-                font: Kirigami.Theme.fixedWidthFont
-                background: null
+                fileName: PeekController.fileName
+                highlight: loader.highlight
+                zoom: root.zoom
             }
         }
-    }
-
-    SyntaxHighlighter {
-        textEdit: area
-        definition: loader.text.length > root.highlightLimit ? Repository.definitionForName("None") : Repository.definitionForFileName(PeekController.fileName)
-        theme: Repository.defaultTheme(Kirigami.ColorUtils.brightnessForColor(Kirigami.Theme.backgroundColor) === Kirigami.ColorUtils.Dark ? Repository.DarkTheme : Repository.LightTheme)
     }
 
     Kirigami.PlaceholderMessage {

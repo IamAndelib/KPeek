@@ -16,17 +16,17 @@ add_executable(kpeek
     pdfdocument.cpp pdfdocument.h
     officeconverter.cpp officeconverter.h
     archivemodel.cpp archivemodel.h
+    workerpool.h
 )
 
-set_source_files_properties(qml/ScrollKeys.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
-
 qt_add_qml_module(kpeek
-    URI org.kde.kpeek
+    URI io.github.iamandelib.kpeek
     NO_PLUGIN
     QML_FILES
         qml/Main.qml
         qml/PdfView.qml
-        qml/ScrollKeys.qml
+        qml/SourceText.qml
+        qml/ViewerInput.qml
         qml/viewers/ArchiveViewer.qml
         qml/viewers/FontViewer.qml
         qml/viewers/ImageViewer.qml
@@ -58,3 +58,6 @@ target_link_libraries(kpeek PRIVATE
 )
 
 install(TARGETS kpeek ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})
+install(PROGRAMS ${KPEEK_APP_ID}.desktop DESTINATION ${KDE_INSTALL_APPDIR})
+install(FILES ${KPEEK_APP_ID}.metainfo.xml DESTINATION ${KDE_INSTALL_METAINFODIR})
+ecm_install_icons(ICONS sc-apps-${KPEEK_APP_ID}.svg DESTINATION ${KDE_INSTALL_ICONDIR})

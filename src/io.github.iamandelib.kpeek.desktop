@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: CC0-1.0
+# SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
+[Desktop Entry]
+Type=Application
+Name=KPeek
+GenericName=File Previewer
+Comment=Quick previews of files for Dolphin
+Exec=kpeek %F
+Icon=io.github.iamandelib.kpeek
+Terminal=false
+Categories=Qt;KDE;Utility;
+Keywords=preview;quick look;peek;viewer;
+# Opened from Dolphin with files; started on its own it has nothing to show.
+NoDisplay=true
