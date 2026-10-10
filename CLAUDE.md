@@ -13,6 +13,9 @@ Read README.md first; it covers the features, the Dolphin integration (service m
   per-viewer controls for these. The plain wheel only scrolls (never switches files: documents need it).
 - Background work goes on `workerPool()` (`src/workerpool.h`), never `QThreadPool::globalInstance()`.
 - Never set a KSyntaxHighlighting `SyntaxHighlighter.textEdit` to null: it crashes. Swap components instead.
+- Qt on Wayland reports wheel events (even from a real mouse) with a "touchpad"-typed device: any
+  `WheelHandler` needs `acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad`. QtQuickTest's
+  `mouseWheel()` only simulates mouse devices, so test this in C++ (see `autotests/viewerinputtest.cpp`).
 
 ## Workflow
 - Build in a container with the dependencies from `.github/workflows/ci.yml` (the maintainer uses a Fedora
