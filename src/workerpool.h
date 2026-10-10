@@ -6,7 +6,7 @@
 #include <QThreadPool>
 
 /**
- * Pool for background work (PDF pages, archive listings, LibreOffice detection).
+ * Pool for background work (PDF and comic pages, PDF layouts, folder listings, LibreOffice detection).
  *
  * Unlike QThreadPool::globalInstance(), the application doesn't wait for it on exit, so
  * quitting can't hang on a long uninterruptible job such as decompressing a huge tarball.
@@ -18,8 +18,9 @@ inline QThreadPool *workerPool()
     return pool;
 }
 
-/// One thread for archive listings: opening a compressed tar decompresses it whole and can't be
-/// interrupted, so several queued ones must neither run at once nor starve PDF rendering.
+/// One thread for libarchive scans (archive listings, comic layouts): skipping a large entry of a
+/// compressed archive means decompressing it, which can't be interrupted, so queued scans must
+/// neither run at once nor starve page rendering.
 inline QThreadPool *archivePool()
 {
     static auto *pool = [] {

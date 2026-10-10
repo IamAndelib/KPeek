@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
 
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick3D
@@ -20,7 +22,6 @@ Rectangle {
     id: root
 
     property real zoom: 1.0
-    readonly property Flickable scrollTarget: null
     readonly property bool hardware: GraphicsInfo.api !== GraphicsInfo.Software
     property bool loadRequested: PeekController.fileSize <= (PeekController.lowMemory ? 4 : 10) * 1024 * 1024
 

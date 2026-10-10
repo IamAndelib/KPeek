@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
 
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import io.github.iamandelib.kpeek
 
-// Contents listing of zip, tar, 7z and ar archives.
+// Contents listing of archives.
 Rectangle {
     readonly property Flickable scrollTarget: list
 

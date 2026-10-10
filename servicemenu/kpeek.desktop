@@ -3,8 +3,8 @@
 #
 # Dolphin service menu: adds "Peek" to the context menu of every file and folder.
 # Dolphin 26.04 and later let users bind a shortcut to it (KPeek suggests Meta+Space).
-# The Exec line suits a native install; the Flatpak installer and the development
-# script rewrite it.
+# The Exec line suits a native install; the development script (and the KDE Store
+# package, for the Flatpak) rewrite it.
 [Desktop Entry]
 Type=Service
 MimeType=all/all;

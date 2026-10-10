@@ -51,11 +51,12 @@ With several files selected, KPeek moves through those; with one, through its wh
 |---|---|
 | <kbd>←</kbd> <kbd>→</kbd> | Previous / next file |
 | Mouse wheel, <kbd>↑</kbd> <kbd>↓</kbd> <kbd>PgUp</kbd> <kbd>PgDn</kbd> <kbd>Home</kbd> <kbd>End</kbd> | Scroll |
-| <kbd>Ctrl</kbd>+<kbd>+</kbd> <kbd>Ctrl</kbd>+<kbd>−</kbd> <kbd>Ctrl</kbd>+<kbd>0</kbd>, <kbd>Ctrl</kbd>+wheel | Zoom in, out, reset (images, PDFs, documents, text, fonts). The header shows the zoom level, with zoom buttons and a reset button. |
-| <kbd>Ctrl</kbd>+drag | Grab and move the content; zoomed images also pan with a plain drag |
+| <kbd>Ctrl</kbd>+<kbd>+</kbd> <kbd>Ctrl</kbd>+<kbd>−</kbd> <kbd>Ctrl</kbd>+<kbd>0</kbd>, <kbd>Ctrl</kbd>+wheel | Zoom in, out, reset (everything but media and archives). The header shows the zoom level, with zoom buttons and a reset button. |
+| <kbd>Ctrl</kbd>+drag | Grab and move the content; zoomed images and document pages also pan with a plain drag |
 | <kbd>Enter</kbd> | Open in the default application |
-| <kbd>Meta</kbd>+<kbd>Space</kbd>, <kbd>Space</kbd>, <kbd>Esc</kbd> | Close |
-| <kbd>K</kbd> | Play/pause media |
+| <kbd>Meta</kbd>+<kbd>Space</kbd>, <kbd>Space</kbd>, <kbd>Esc</kbd>, <kbd>Q</kbd> | Close |
+| <kbd>K</kbd>, <kbd>J</kbd> / <kbd>L</kbd>, <kbd>M</kbd> | Play/pause, back/forward 10 seconds, mute (media) |
+| <kbd>Ctrl</kbd>+<kbd>U</kbd> | Show the Markdown source |
 
 ## How it integrates with Dolphin
 
@@ -64,7 +65,7 @@ Dolphin's context menu that receives the selected files. Dolphin 26.04 and later
 action, so you can bind it under *Settings → Configure Keyboard Shortcuts → Peek*. The suggested shortcut is <kbd>Meta</kbd>+<kbd>Space</kbd>;
 plain Space already toggles Dolphin's selection mode.
 
-KPeek runs as a single instance. After the first preview it stays in the background for a few minutes, so the next one opens instantly.
+KPeek runs as a single instance. After the first preview it stays in the background for 10 minutes, so the next one opens instantly.
 Invoking it again on the file that's already showing closes the preview.
 
 ## Requirements
@@ -106,7 +107,7 @@ Bug reports and pull requests are welcome on [GitHub](https://github.com/IamAnde
   `autotests/qml/tst_*.qml`), and keep `ctest --test-dir build` green.
 - **Layout:** `src/` holds the C++ backend, with `src/qml/viewers/` holding one QML file per preview type. A new
   preview type is a `XxxViewer.qml` plus a MIME rule in `src/viewerresolver.cpp`. Viewers take part in
-  zoom, drag and keyboard scrolling by exposing `zoom` and `scrollTarget` (see `src/qml/ViewerInput.qml`).
+  zoom, drag and keyboard scrolling by exposing `zoom`, `scrollTarget` and optionally `dragPans` and `maxZoom` (see `src/qml/ViewerInput.qml`).
 - **Licensing:** the project follows [REUSE](https://reuse.software/): new files need SPDX headers (`reuse lint` checks).
 - **CI:** every push builds and tests on Fedora; `.github/workflows/ci.yml` lists the exact dependencies.
 

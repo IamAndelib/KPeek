@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
 
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls as QQC2
 import org.kde.kirigami as Kirigami
@@ -80,6 +82,7 @@ Rectangle {
         QQC2.ScrollBar.horizontal: QQC2.ScrollBar {}
 
         delegate: Item {
+            id: pageItem
             required property int index
             readonly property size pointSize: root.document.pageSize(index)
 
@@ -87,7 +90,6 @@ Rectangle {
             height: root.pageWidth * pointSize.height / Math.max(1, pointSize.width)
 
             Rectangle {
-                id: page
                 anchors.horizontalCenter: parent.horizontalCenter
                 width: root.pageWidth
                 height: parent.height
@@ -97,7 +99,7 @@ Rectangle {
                 Image {
                     id: pageImage
                     anchors.fill: parent
-                    source: root.document.pageSource(index)
+                    source: root.document.pageSource(pageItem.index)
                     sourceSize.width: root.renderWidth
                     asynchronous: true
                     cache: false

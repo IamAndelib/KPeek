@@ -27,7 +27,7 @@ struct ArchiveListing {
     bool incomplete = false; ///< the archive is damaged or cut off; entries up to that point are listed
 };
 
-/// Flat listing of an archive's contents (zip, tar.*, 7z, ar), read on the worker pool.
+/// Flat listing of an archive's contents, read with libarchive on archivePool().
 class ArchiveModel : public QAbstractListModel
 {
     Q_OBJECT

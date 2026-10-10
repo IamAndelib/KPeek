@@ -69,8 +69,7 @@ QString TextLoader::decode(const QByteArray &data, bool complete)
         return text;
     }
     // Not "System": that is UTF-8 on every modern system and would just repeat the failure.
-    QStringDecoder latin1(QStringDecoder::Latin1);
-    return latin1.decode(data);
+    return QString::fromLatin1(data);
 }
 
 QString TextLoader::breakLongLines(const QString &text)

@@ -13,7 +13,7 @@
 
 /**
  * Page count and page sizes of a PDF, for laying out the page list in QML.
- * The pages themselves are rendered on demand by PdfPageProvider ("image://kpeekpdf/<page>/<path>").
+ * The pages themselves are rendered on demand by PdfPageProvider ("image://kpeekpdf/<page>/<mtime>/<path>").
  */
 class PdfDocument : public QObject
 {
@@ -40,11 +40,6 @@ public:
     /// Image provider source for @p page.
     Q_INVOKABLE QString pageSource(int page) const;
 
-Q_SIGNALS:
-    void urlChanged();
-    void loaded();
-
-public:
     struct Layout {
         QList<QSizeF> pageSizes;
         bool failed = false;
@@ -58,6 +53,10 @@ public:
 
     /// The document-cache key for a "<mtime>/<percent-encoded path>" key, however much of it is already decoded.
     static QString cacheKey(const QString &key);
+
+Q_SIGNALS:
+    void urlChanged();
+    void loaded();
 
 private:
     QUrl m_url;

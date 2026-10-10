@@ -25,8 +25,10 @@ namespace
 QMutex s_mutex;
 QCache<QString, Poppler::Document> s_documents(isLowMemorySystem() ? 2 : 4);
 
+constexpr QSizeF A4Points(595, 842); // for pages whose size Poppler can't tell
+
 /// The cached document for @p key. Call with s_mutex held. Sets @p locked for password-protected files.
-Poppler::Document *documentLocked(const QString &key, bool *locked = nullptr)
+Poppler::Document *openDocument(const QString &key, bool *locked = nullptr)
 {
     const QString cacheKey = PdfDocument::cacheKey(key);
     if (auto *document = s_documents.object(cacheKey)) {
@@ -57,7 +59,7 @@ QImage renderPage(const QString &key, int pageNumber, int width, const std::atom
     if (cancelled) {
         return {}; // queued behind other renders and scrolled past meanwhile
     }
-    Poppler::Document *document = documentLocked(key);
+    Poppler::Document *document = openDocument(key);
     const std::unique_ptr<Poppler::Page> page = document ? document->page(pageNumber) : nullptr;
     const QSizeF points = page ? page->pageSizeF() : QSizeF();
     if (points.isEmpty()) {
@@ -88,7 +90,7 @@ PdfDocument::Layout PdfDocument::readLayout(const QString &key)
 {
     Layout layout;
     QMutexLocker locker(&s_mutex);
-    Poppler::Document *document = documentLocked(key, &layout.locked);
+    Poppler::Document *document = openDocument(key, &layout.locked);
     if (!document) {
         layout.failed = !layout.locked;
         return layout;
@@ -98,7 +100,7 @@ PdfDocument::Layout PdfDocument::readLayout(const QString &key)
     layout.pageSizes.reserve(count);
     for (int i = 0; i < count; ++i) {
         const std::unique_ptr<Poppler::Page> page = document->page(i);
-        layout.pageSizes.append(page ? page->pageSizeF() : QSizeF(595, 842));
+        layout.pageSizes.append(page ? page->pageSizeF() : A4Points);
     }
     return layout;
 }
@@ -158,7 +160,7 @@ bool PdfDocument::locked() const
 
 QSizeF PdfDocument::pageSize(int page) const
 {
-    return m_layout.pageSizes.value(page, QSizeF(595, 842));
+    return m_layout.pageSizes.value(page, A4Points);
 }
 
 QString PdfDocument::pageSource(int page) const

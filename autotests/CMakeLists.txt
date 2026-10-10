@@ -25,7 +25,7 @@ target_include_directories(pdfdocumenttest PRIVATE ../src)
 
 ecm_add_test(comicbooktest.cpp ../src/comicbook.cpp
     TEST_NAME comicbooktest
-    LINK_LIBRARIES kpeekcore Qt6::Test Qt6::Quick Qt6::Concurrent LibArchive::LibArchive)
+    LINK_LIBRARIES Qt6::Test Qt6::Quick Qt6::Concurrent LibArchive::LibArchive)
 target_include_directories(comicbooktest PRIVATE ../src)
 
 ecm_add_test(textloadertest.cpp ../src/textloader.cpp

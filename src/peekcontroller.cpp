@@ -192,12 +192,12 @@ void PeekController::raiseWindow()
     if (!m_window) {
         return;
     }
-    // KDBusService puts the invoking launcher's activation token in the environment,
-    // which lets Wayland compositors give the already-running window focus.
     if (!m_showing) {
         m_showing = true;
         Q_EMIT showingChanged();
     }
+    // KDBusService puts the invoking launcher's activation token in the environment,
+    // which lets Wayland compositors give the already-running window focus.
     KWindowSystem::updateStartupId(m_window);
     m_window->show();
     m_window->raise();

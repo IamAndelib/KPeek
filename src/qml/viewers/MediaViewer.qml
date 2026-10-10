@@ -19,7 +19,7 @@ Rectangle {
     id: root
 
     readonly property bool hasThumbnail: PeekController.thumbnail.toString() !== ""
-    // Whether this file starts by itself; decided once its metadata has loaded.
+    // Whether this file waits for Play instead of starting by itself; decided once its metadata has loaded.
     property bool waitsForPlay: false
 
     function heavyForCpu() {

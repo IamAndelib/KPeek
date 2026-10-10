@@ -13,7 +13,7 @@ Read README.md first; it covers the features, the Dolphin integration (service m
   QML engine refuses network access (`LocalOnlyNetworkAccessManager` in `main.cpp`); never run external
   programs on file content (libarchive filters are listed explicitly in `src/archivereader.h`, EPS is excluded).
 - Shared interaction lives in `src/qml/ViewerInput.qml` (Ctrl+wheel zoom, Ctrl+drag, scroll keys) and the
-  header zoom controls in `Main.qml`. Viewers take part by exposing `zoom` and `scrollTarget`; don't add
+  header zoom controls in `Main.qml`. Viewers take part by exposing `zoom` and `scrollTarget` (optionally `dragPans`, `maxZoom`); don't add
   per-viewer controls for these. The plain wheel only scrolls (never switches files: documents need it).
 - Images follow GNOME Sushi / Gwenview: decode once at screen size, GPU-scale while zooming, and load full
   detail (≤ 8192 px, ≤ 256 MP) once, on top, only when zooming needs it. Never hide pixels before their
@@ -41,7 +41,8 @@ Read README.md first; it covers the features, the Dolphin integration (service m
 - Resident memory: `close()` releases caches, and `main()` limits glibc to two malloc arenas (decoder threads
   otherwise strand hundreds of MB). Large 3D models load only on request. Measure before/after with
   `/proc/<pid>/smaps_rollup` (Private_Dirty), not RSS.
-- Background work goes on `workerPool()` (`src/workerpool.h`), never `QThreadPool::globalInstance()`.
+- Background work goes on `workerPool()` (`src/workerpool.h`), libarchive scans on `archivePool()`; never
+  `QThreadPool::globalInstance()`.
 - Never set a KSyntaxHighlighting `SyntaxHighlighter.textEdit` to null: it crashes. Swap components instead.
 - Qt on Wayland reports wheel events (even from a real mouse) with a "touchpad"-typed device: any
   `WheelHandler` needs `acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad`. QtQuickTest's

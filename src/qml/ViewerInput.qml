@@ -88,7 +88,6 @@ Item {
         cursorShape: Qt.OpenHandCursor
     }
     PointHandler {
-        id: pressHint
         enabled: input.pannable
         acceptedButtons: Qt.LeftButton
         acceptedModifiers: input.dragPans ? Qt.KeyboardModifierMask : Qt.ControlModifier
@@ -96,7 +95,6 @@ Item {
     }
 
     DragHandler {
-        id: panHandler
 
         property point startContent
 

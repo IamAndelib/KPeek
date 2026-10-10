@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
 
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls as QQC2
 import org.kde.kirigami as Kirigami
@@ -27,7 +29,7 @@ Rectangle {
     // Natural size in logical pixels (from the file header, or the decoded image for formats
     // that can't report it up front), and the size it is shown at.
     readonly property size pixelSize: PeekController.imageSize.width > 0 ? PeekController.imageSize
-        : Qt.size(base.item?.implicitWidth ?? 0, base.item?.implicitHeight ?? 0)
+        : Qt.size(baseImage?.implicitWidth ?? 0, baseImage?.implicitHeight ?? 0)
     readonly property size naturalSize: Qt.size(pixelSize.width / PeekController.devicePixelRatio, pixelSize.height / PeekController.devicePixelRatio)
     readonly property real fitScale: naturalSize.width > 0 && naturalSize.height > 0
         ? Math.min(1, flick.width / naturalSize.width, flick.height / naturalSize.height) : 1
@@ -50,18 +52,21 @@ Rectangle {
     // would shrink the image again on the CPU before every upload.
     readonly property int detailCap: Math.min(PeekController.lowMemory ? 4096 : 8192, PeekController.maxTextureSize)
 
-    readonly property bool baseReady: base.item?.status === Image.Ready
+    // The loaders' items, typed (AnimatedImage is an Image too).
+    readonly property Image baseImage: base.item as Image
+    readonly property Image detailImage: detail.item as Image
+    readonly property bool baseReady: baseImage?.status === Image.Ready
     // Set (for good) the first time the image is shown larger than the base decode resolves.
     property bool wantsDetail: false
     readonly property bool baseTooSmall: !PeekController.animated && baseReady
-        && shownWidth * PeekController.devicePixelRatio > (base.item?.implicitWidth ?? 0) * 1.05
+        && shownWidth * PeekController.devicePixelRatio > (baseImage?.implicitWidth ?? 0) * 1.05
     // Above 256 MP even the reduced decode would exceed Qt's image allocation limit and fail, so such
     // images zoom on the base alone.
     readonly property bool detailDecodable: pixelSize.width * pixelSize.height <= 256e6
     onBaseTooSmallChanged: if (baseTooSmall && detailDecodable) wantsDetail = true
     // Exactly one of base and detail is drawn: detail once loaded and while zoomed past the base,
     // the base otherwise (also when zooming back out, so no mipmaps are needed for clean downscaling).
-    readonly property bool detailShown: detail.item?.status === Image.Ready && baseTooSmall
+    readonly property bool detailShown: detailImage?.status === Image.Ready && baseTooSmall
 
     // Keep the image point under the view's centre in place while zooming. The new position is
     // computed from the zoom formula and set in this same handler: deferring it (or reading bindings
@@ -105,7 +110,7 @@ Rectangle {
 
             Image {
                 anchors.fill: parent
-                visible: !root.baseReady && base.item?.status !== Image.Error
+                visible: !root.baseReady && baseImage?.status !== Image.Error
                 source: PeekController.thumbnail
                 fillMode: Image.PreserveAspectFit
                 asynchronous: true
@@ -130,8 +135,8 @@ Rectangle {
                     asynchronous: true
                     autoTransform: true
                     smooth: true
-                    // At most 8192 px a side (~45 MP), 4096 on low-memory machines. Qt Quick shrinks a texture
-                    // that exceeds the GPU's own limit by itself, so this is about memory, not correctness.
+                    // At most 8192 px a side (up to 67 MP), 4096 on low-memory machines, and within the
+                    // GPU's texture limit (detailCap).
                     sourceSize: root.decodeSize(Qt.size(root.detailCap, root.detailCap))
                 }
             }
@@ -168,7 +173,7 @@ Rectangle {
 
     QQC2.BusyIndicator {
         anchors.centerIn: parent
-        running: base.item?.status === Image.Loading && PeekController.thumbnail.toString() === ""
+        running: baseImage?.status === Image.Loading && PeekController.thumbnail.toString() === ""
     }
 
     // A file that can't be decoded here (e.g. a camera RAW format this system lacks a decoder for)
@@ -178,8 +183,8 @@ Rectangle {
         anchors.centerIn: parent
         width: Math.min(implicitWidth, parent.width - Kirigami.Units.gridUnit * 2)
         height: Math.min(implicitHeight, parent.height - Kirigami.Units.gridUnit * 2)
-        visible: base.item?.status === Image.Error && status === Image.Ready
-        source: base.item?.status === Image.Error ? PeekController.thumbnail : ""
+        visible: baseImage?.status === Image.Error && status === Image.Ready
+        source: baseImage?.status === Image.Error ? PeekController.thumbnail : ""
         fillMode: Image.PreserveAspectFit
         asynchronous: true
         smooth: true
@@ -188,7 +193,7 @@ Rectangle {
     Kirigami.PlaceholderMessage {
         anchors.centerIn: parent
         width: parent.width - Kirigami.Units.gridUnit * 4
-        visible: base.item?.status === Image.Error && !fallback.visible && fallback.status !== Image.Loading
+        visible: baseImage?.status === Image.Error && !fallback.visible && fallback.status !== Image.Loading
         icon.name: "image-missing"
         text: i18nc("@info", "This image could not be displayed")
     }
