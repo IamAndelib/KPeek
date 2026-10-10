@@ -38,6 +38,12 @@ void ViewerResolverTest::testViewer_data()
     QTest::newRow("mp3") << QStringLiteral("audio/mpeg") << QStringLiteral("Media");
     QTest::newRow("zip") << QStringLiteral("application/zip") << QStringLiteral("Archive");
     QTest::newRow("tar.gz") << QStringLiteral("application/x-compressed-tar") << QStringLiteral("Archive");
+    QTest::newRow("rar") << QStringLiteral("application/vnd.rar") << QStringLiteral("Archive");
+    QTest::newRow("iso") << QStringLiteral("application/x-cd-image") << QStringLiteral("Archive");
+    QTest::newRow("rpm") << QStringLiteral("application/x-rpm") << QStringLiteral("Archive");
+    QTest::newRow("deb") << QStringLiteral("application/vnd.debian.binary-package") << QStringLiteral("Archive");
+    QTest::newRow("cbz is a comic, not a zip archive") << QStringLiteral("application/vnd.comicbook+zip") << QStringLiteral("Comic");
+    QTest::newRow("cbr") << QStringLiteral("application/vnd.comicbook-rar") << QStringLiteral("Comic");
     QTest::newRow("ttf") << QStringLiteral("font/ttf") << QStringLiteral("Font");
     QTest::newRow("markdown") << QStringLiteral("text/markdown") << QStringLiteral("Markdown");
     QTest::newRow("c++") << QStringLiteral("text/x-c++src") << QStringLiteral("Text");

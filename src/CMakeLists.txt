@@ -19,6 +19,7 @@ add_executable(kpeek
     pdfdocument.cpp pdfdocument.h
     officeconverter.cpp officeconverter.h
     archivemodel.cpp archivemodel.h
+    comicbook.cpp comicbook.h
     workerpool.h
 )
 
@@ -27,10 +28,11 @@ qt_add_qml_module(kpeek
     NO_PLUGIN
     QML_FILES
         qml/Main.qml
-        qml/PdfView.qml
+        qml/PageView.qml
         qml/SourceText.qml
         qml/ViewerInput.qml
         qml/viewers/ArchiveViewer.qml
+        qml/viewers/ComicViewer.qml
         qml/viewers/FontViewer.qml
         qml/viewers/ImageViewer.qml
         qml/viewers/InfoViewer.qml

@@ -26,8 +26,10 @@ Rectangle {
         id: pdfLoader
         anchors.fill: parent
         active: converter.status === OfficeConverter.Ready
-        sourceComponent: PdfView {
-            url: converter.pdfUrl
+        sourceComponent: PageView {
+            document: PdfDocument {
+                url: converter.pdfUrl
+            }
             zoom: root.zoom
         }
     }

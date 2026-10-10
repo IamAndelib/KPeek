@@ -6,11 +6,12 @@ import QtQuick.Controls as QQC2
 import org.kde.kirigami as Kirigami
 import io.github.iamandelib.kpeek
 
-// Scrollable page list for a PDF; shared by the PDF viewer and converted office documents.
+// Scrollable page list shared by the PDF, office and comic viewers. The document is anything with
+// pageCount, pageSize(i), pageSource(i) and failed (and optionally locked): PdfDocument, ComicBook.
 Rectangle {
     id: root
 
-    property alias url: document.url
+    required property QtObject document
     property real zoom: 1.0
     readonly property Flickable scrollTarget: view
     readonly property bool dragPans: true
@@ -60,14 +61,10 @@ Rectangle {
 
     color: Kirigami.Theme.alternateBackgroundColor
 
-    PdfDocument {
-        id: document
-    }
-
     ListView {
         id: view
         anchors.fill: parent
-        visible: document.pageCount > 0
+        visible: root.document.pageCount > 0
         clip: true
         spacing: Kirigami.Units.largeSpacing
         topMargin: Kirigami.Units.largeSpacing
@@ -76,14 +73,14 @@ Rectangle {
         flickableDirection: Flickable.AutoFlickIfNeeded
         boundsBehavior: Flickable.StopAtBounds
         cacheBuffer: height
-        model: document.pageCount
+        model: root.document.pageCount
 
         QQC2.ScrollBar.vertical: QQC2.ScrollBar {}
         QQC2.ScrollBar.horizontal: QQC2.ScrollBar {}
 
         delegate: Item {
             required property int index
-            readonly property size pointSize: document.pageSize(index)
+            readonly property size pointSize: root.document.pageSize(index)
 
             width: view.contentWidth
             height: root.pageWidth * pointSize.height / Math.max(1, pointSize.width)
@@ -98,7 +95,7 @@ Rectangle {
 
                 Image {
                     anchors.fill: parent
-                    source: document.pageSource(index)
+                    source: root.document.pageSource(index)
                     sourceSize.width: root.renderWidth
                     asynchronous: true
                     cache: false
@@ -113,7 +110,7 @@ Rectangle {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
         anchors.bottomMargin: Kirigami.Units.largeSpacing
-        visible: document.pageCount > 0
+        visible: root.document.pageCount > 0
         width: pageLabel.implicitWidth
         height: pageLabel.implicitHeight
         radius: Kirigami.Units.cornerRadius
@@ -128,15 +125,15 @@ Rectangle {
             onProbeChanged: if (probe >= 0) current = probe
             anchors.centerIn: parent
             padding: Kirigami.Units.smallSpacing * 2
-            text: i18nc("@info page position", "Page %1 of %2", current + 1, document.pageCount)
+            text: i18nc("@info page position", "Page %1 of %2", current + 1, root.document.pageCount)
         }
     }
 
     Kirigami.PlaceholderMessage {
         anchors.centerIn: parent
         width: parent.width - Kirigami.Units.gridUnit * 4
-        visible: document.failed || document.locked
-        icon.name: document.locked ? "object-locked" : "dialog-error"
-        text: document.locked ? i18nc("@info", "This document is password-protected") : i18nc("@info", "This document could not be opened")
+        visible: root.document.failed || root.document.locked === true
+        icon.name: root.document.locked === true ? "object-locked" : "dialog-error"
+        text: root.document.locked === true ? i18nc("@info", "This document is password-protected") : i18nc("@info", "This document could not be opened")
     }
 }

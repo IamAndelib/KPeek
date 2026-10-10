@@ -36,6 +36,15 @@ bool isOffice(const QMimeType &mime)
                         QStringLiteral("application/x-iwork-keynote-sffkey")});
 }
 
+bool isComic(const QMimeType &mime)
+{
+    return inheritsAny(mime,
+                       {QStringLiteral("application/vnd.comicbook+zip"),
+                        QStringLiteral("application/vnd.comicbook-rar"),
+                        QStringLiteral("application/x-cb7"),
+                        QStringLiteral("application/x-cbt")});
+}
+
 bool isArchive(const QMimeType &mime)
 {
     return inheritsAny(mime,
@@ -112,6 +121,10 @@ QString ViewerResolver::viewerFor(const QMimeType &mime)
     }
     if (isFont(mime)) {
         return QStringLiteral("Font");
+    }
+    // Before archives: comic books are zip, rar, 7z or tar files.
+    if (isComic(mime)) {
+        return QStringLiteral("Comic");
     }
     if (isArchive(mime)) {
         return QStringLiteral("Archive");

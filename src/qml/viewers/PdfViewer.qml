@@ -3,6 +3,8 @@
 
 import io.github.iamandelib.kpeek
 
-PdfView {
-    url: PeekController.url
+PageView {
+    document: PdfDocument {
+        url: PeekController.url
+    }
 }
