@@ -38,6 +38,7 @@ qt_add_qml_module(kpeek
         qml/viewers/InfoViewer.qml
         qml/viewers/MarkdownViewer.qml
         qml/viewers/MediaViewer.qml
+        qml/viewers/ModelViewer.qml
         qml/viewers/OfficeViewer.qml
         qml/viewers/PdfViewer.qml
         qml/viewers/TextViewer.qml

@@ -43,6 +43,9 @@ void ViewerResolverTest::testViewer_data()
     QTest::newRow("rpm") << QStringLiteral("application/x-rpm") << QStringLiteral("Archive");
     QTest::newRow("deb") << QStringLiteral("application/vnd.debian.binary-package") << QStringLiteral("Archive");
     QTest::newRow("cbz is a comic, not a zip archive") << QStringLiteral("application/vnd.comicbook+zip") << QStringLiteral("Comic");
+    QTest::newRow("gltf") << QStringLiteral("model/gltf-binary") << QStringLiteral("Model");
+    QTest::newRow("obj is a model, not text") << QStringLiteral("model/obj") << QStringLiteral("Model");
+    QTest::newRow("stl") << QStringLiteral("model/stl") << QStringLiteral("Model");
     QTest::newRow("cbr") << QStringLiteral("application/vnd.comicbook-rar") << QStringLiteral("Comic");
     QTest::newRow("ttf") << QStringLiteral("font/ttf") << QStringLiteral("Font");
     QTest::newRow("markdown") << QStringLiteral("text/markdown") << QStringLiteral("Markdown");

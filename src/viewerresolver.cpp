@@ -36,6 +36,19 @@ bool isOffice(const QMimeType &mime)
                         QStringLiteral("application/x-iwork-keynote-sffkey")});
 }
 
+bool isModel(const QMimeType &mime)
+{
+    // What Qt Quick 3D's asset importer reads and shared-mime-info names (no FBX/PLY/Collada types exist).
+    return inheritsAny(mime,
+                       {QStringLiteral("model/gltf+json"),
+                        QStringLiteral("model/gltf-binary"),
+                        QStringLiteral("model/obj"),
+                        QStringLiteral("model/stl"),
+                        QStringLiteral("model/x.stl-ascii"),
+                        QStringLiteral("model/x.stl-binary"),
+                        QStringLiteral("model/3mf")});
+}
+
 bool isComic(const QMimeType &mime)
 {
     return inheritsAny(mime,
@@ -121,6 +134,10 @@ QString ViewerResolver::viewerFor(const QMimeType &mime)
     }
     if (isFont(mime)) {
         return QStringLiteral("Font");
+    }
+    // Before text: OBJ, glTF and ASCII STL are text formats.
+    if (isModel(mime)) {
+        return QStringLiteral("Model");
     }
     // Before archives: comic books are zip, rar, 7z or tar files.
     if (isComic(mime)) {

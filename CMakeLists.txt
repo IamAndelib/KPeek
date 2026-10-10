@@ -39,6 +39,8 @@ find_package(Qt6Multimedia ${QT_MIN_VERSION})
 set_package_properties(Qt6Multimedia PROPERTIES TYPE RUNTIME DESCRIPTION "Video and audio previews")
 find_package(KF6SyntaxHighlighting ${KF_MIN_VERSION})
 set_package_properties(KF6SyntaxHighlighting PROPERTIES TYPE RUNTIME DESCRIPTION "Syntax highlighting in text previews")
+find_package(Qt6Quick3D ${QT_MIN_VERSION})
+set_package_properties(Qt6Quick3D PROPERTIES TYPE RUNTIME DESCRIPTION "3D model previews (with its assimp asset importer)")
 find_package(KF6Kirigami ${KF_MIN_VERSION})
 set_package_properties(KF6Kirigami PROPERTIES TYPE RUNTIME DESCRIPTION "QML UI framework used by the preview window")
 
