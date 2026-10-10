@@ -30,6 +30,16 @@ and [Sushi](https://gitlab.gnome.org/GNOME/sushi) is to GNOME Files.
 - **Dolphin's thumbnails** are shown instantly as placeholders while the full image or video loads.
 - **Video** is decoded by the graphics card where possible (VA-API). A large video in a codec the card
   probably can't decode (e.g. 4K AV1) waits for you to press Play instead of loading the processor.
+- **Machines with 4 GB of memory or less** get lower limits for image and PDF detail automatically.
+- **When hidden**, KPeek stays in the background for 10 minutes so the next preview opens instantly,
+  but hands back the memory used by the last preview.
+
+### Troubleshooting
+
+- Video plays badly or not at all with a broken GPU driver: start with `QT_FFMPEG_DECODING_HW_DEVICE_TYPES=,`
+  to decode on the processor.
+- Rendering problems with an unusual GPU: try `QSG_RHI_BACKEND=vulkan`, or `QT_QUICK_BACKEND=software`.
+- Force the low-memory limits: `KPEEK_LOW_MEMORY=1`.
 
 ### Keys and mouse
 

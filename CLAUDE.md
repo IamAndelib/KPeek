@@ -15,10 +15,15 @@ Read README.md first; it covers the features, the Dolphin integration (service m
   detail (≤ 8192 px, ≤ 256 MP) once, on top, only when zooming needs it. Never hide pixels before their
   replacement is ready (that caused zoom flashing), and never set an Image.sourceSize larger than the image:
   Qt scales *up* to it. Dolphin's thumbnail cache (`src/thumbnailcache.cpp`) is the instant placeholder;
-  video decodes on the GPU via VA-API. The Flatpak manifest must grant `--filesystem=xdg-cache/thumbnails:ro`.
+  video decodes on the GPU via VA-API.
 - Zoom must update content size and scroll position in the same handler, from the zoom formula: never
   `Qt.callLater` it, and never set a ListView's contentX before its content has grown (it gets clamped).
   A deferred scroll position renders one frame at the old position, which flickers above 100%.
+- Machines with ≤ 4 GB RAM (`isLowMemorySystem()`, `src/systeminfo.h`; `KPEEK_LOW_MEMORY=1` forces it)
+  get lower caps: images 4096 px, PDF pages 24 MP, 2 cached PDF documents.
+- Flatpak manifest (when written) needs: `--device=dri` (GPU and VA-API), the `codecs-extra` extension
+  (H.264/HEVC), `--filesystem=host:ro` (sibling files), `--filesystem=xdg-cache/thumbnails:ro`,
+  `--talk-name=org.freedesktop.Flatpak` (host LibreOffice). Don't bundle NVIDIA libraries.
 - Background work goes on `workerPool()` (`src/workerpool.h`), never `QThreadPool::globalInstance()`.
 - Never set a KSyntaxHighlighting `SyntaxHighlighter.textEdit` to null: it crashes. Swap components instead.
 - Qt on Wayland reports wheel events (even from a real mouse) with a "touchpad"-typed device: any
