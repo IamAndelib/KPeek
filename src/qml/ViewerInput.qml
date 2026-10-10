@@ -9,7 +9,8 @@ import org.kde.kirigami as Kirigami
  *
  * A viewer takes part by exposing `scrollTarget` (its Flickable, or null when it has
  * nothing to scroll), a `zoom` property if zooming means something for it, and
- * `dragPans: true` if a plain drag pans its content (nothing to select, as in images).
+ * `dragPans: true` if a plain drag pans its content (nothing to select, as in images), and
+ * `maxZoom` if it should zoom further than 400%.
  *  - Ctrl+wheel zooms. The plain wheel isn't touched: it scrolls the viewer natively.
  *  - Ctrl+left-drag pans; so does a plain drag in `dragPans` viewers (their Flickable does it).
  *    A hand cursor hints at both: open while hovering, closed while the button is held.
@@ -28,7 +29,8 @@ Item {
     readonly property bool dragPans: viewer?.dragPans ?? false
     readonly property bool pannable: flickable !== null && (flickable.contentHeight > flickable.height + 1 || flickable.contentWidth > flickable.width + 1)
     readonly property real minZoom: 0.25
-    readonly property real maxZoom: 4.0
+    // A viewer may allow more, e.g. images, so large photos can be seen past their real pixels.
+    readonly property real maxZoom: viewer?.maxZoom ?? 4.0
 
     function zoomBy(steps) {
         zoom = Math.min(maxZoom, Math.max(minZoom, zoom * Math.pow(1.25, steps)));

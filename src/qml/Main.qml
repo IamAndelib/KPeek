@@ -25,6 +25,10 @@ QQC2.ApplicationWindow {
     }
 
     header: QQC2.ToolBar {
+        // Layouts don't mirror by themselves for right-to-left languages.
+        LayoutMirroring.enabled: Qt.application.layoutDirection === Qt.RightToLeft
+        LayoutMirroring.childrenInherit: true
+
         RowLayout {
             anchors.fill: parent
             spacing: Kirigami.Units.smallSpacing
@@ -109,7 +113,7 @@ QQC2.ApplicationWindow {
                     TextMetrics {
                         id: zoomLabelMetrics
                         font: zoomLabel.font
-                        text: i18nc("@info zoom level", "%1%", input.maxZoom * 100)
+                        text: i18nc("@info zoom level", "%1%", 8888) // the widest a zoom level gets
                     }
                 }
                 QQC2.ToolButton {
@@ -127,6 +131,8 @@ QQC2.ApplicationWindow {
             QQC2.ToolButton {
                 icon.name: "document-open"
                 text: i18nc("@action:button", "Open")
+                // Narrow windows: keep the file name readable.
+                display: root.width < Kirigami.Units.gridUnit * 30 ? QQC2.AbstractButton.IconOnly : QQC2.AbstractButton.TextBesideIcon
                 focusPolicy: Qt.NoFocus
                 onClicked: PeekController.openExternally()
                 QQC2.ToolTip.text: i18nc("@info:tooltip", "Open with the default application (Enter)")
@@ -152,6 +158,15 @@ QQC2.ApplicationWindow {
         focus: true
         // Unloaded while hidden so closing the preview stops video and audio playback.
         active: PeekController.showing
+        LayoutMirroring.enabled: Qt.application.layoutDirection === Qt.RightToLeft
+        LayoutMirroring.childrenInherit: true
+        // A viewer whose QML modules are missing (e.g. a distribution without Qt Quick 3D or
+        // Qt Multimedia) shows the info card rather than an empty window.
+        onStatusChanged: {
+            if (status === Loader.Error && !source.toString().endsWith("InfoViewer.qml")) {
+                source = Qt.resolvedUrl("viewers/InfoViewer.qml");
+            }
+        }
         onLoaded: {
             if ("zoom" in item) {
                 item.zoom = Qt.binding(() => input.zoom);

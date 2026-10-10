@@ -94,12 +94,20 @@ Rectangle {
                 border.color: root.borderColor
 
                 Image {
+                    id: pageImage
                     anchors.fill: parent
                     source: root.document.pageSource(index)
                     sourceSize.width: root.renderWidth
                     asynchronous: true
                     cache: false
                     retainWhileLoading: true
+                }
+                Kirigami.Icon {
+                    anchors.centerIn: parent
+                    width: Kirigami.Units.iconSizes.huge
+                    height: width
+                    visible: pageImage.status === Image.Error
+                    source: "image-missing"
                 }
             }
         }
@@ -127,6 +135,12 @@ Rectangle {
             padding: Kirigami.Units.smallSpacing * 2
             text: i18nc("@info page position", "Page %1 of %2", current + 1, root.document.pageCount)
         }
+    }
+
+    // Opening a large book or a document on a slow drive takes a moment.
+    QQC2.BusyIndicator {
+        anchors.centerIn: parent
+        running: root.document.pageCount === 0 && !root.document.failed && root.document.locked !== true
     }
 
     Kirigami.PlaceholderMessage {

@@ -16,16 +16,16 @@ Rectangle {
 
     color: Kirigami.Theme.backgroundColor
 
-    FontLoader {
+    FontFile {
         id: loader
-        source: PeekController.url
+        url: PeekController.url
     }
 
     QQC2.ScrollView {
         id: scroll
         contentWidth: availableWidth // samples elide; never scroll sideways
         anchors.fill: parent
-        visible: loader.status === FontLoader.Ready
+        visible: !loader.failed
 
         ColumnLayout {
             width: scroll.availableWidth
@@ -72,8 +72,12 @@ Rectangle {
     Kirigami.PlaceholderMessage {
         anchors.centerIn: parent
         width: parent.width - Kirigami.Units.gridUnit * 4
-        visible: loader.status === FontLoader.Error
+        visible: loader.failed
         icon.name: "dialog-error"
         text: i18nc("@info", "This font could not be loaded")
+    }
+
+    RelativeScrollAnchor {
+        flickable: root.scrollTarget
     }
 }

@@ -45,11 +45,16 @@ Rectangle {
 
     color: player.hasVideo ? "black" : Kirigami.Theme.backgroundColor
     focus: true
+    // YouTube's keys: K play/pause, J/L back/forward 10 s, M mute. (Left/Right switch files.)
     Keys.onPressed: event => {
-        if (event.key === Qt.Key_K) {
-            root.togglePlayback();
-            event.accepted = true;
+        switch (event.key) {
+        case Qt.Key_K: root.togglePlayback(); break;
+        case Qt.Key_J: player.position = Math.max(0, player.position - 10000); break;
+        case Qt.Key_L: player.position = Math.min(player.duration, player.position + 10000); break;
+        case Qt.Key_M: audio.muted = !audio.muted; break;
+        default: return;
         }
+        event.accepted = true;
     }
 
     MediaPlayer {
@@ -201,7 +206,7 @@ Rectangle {
                     text: audio.muted ? i18nc("@action:button", "Unmute") : i18nc("@action:button", "Mute")
                     focusPolicy: Qt.NoFocus
                     onClicked: audio.muted = !audio.muted
-                    QQC2.ToolTip.text: text
+                    QQC2.ToolTip.text: i18nc("@info:tooltip", "%1 (M)", text)
                     QQC2.ToolTip.visible: hovered
                 }
             }

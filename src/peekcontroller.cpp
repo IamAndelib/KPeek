@@ -12,6 +12,7 @@
 #include <KWindowSystem>
 
 #include <QCoreApplication>
+#include <QDebug>
 #include <QDesktopServices>
 #include <QDir>
 #include <QDirIterator>
@@ -127,9 +128,14 @@ void PeekController::close()
 
 void PeekController::openExternally()
 {
-    if (!url().isEmpty()) {
-        QDesktopServices::openUrl(url());
+    if (url().isEmpty()) {
+        return;
+    }
+    // Keep the preview when nothing could open it, rather than leave the user with nothing.
+    if (QDesktopServices::openUrl(url())) {
         close();
+    } else {
+        qWarning() << "No application could open" << url();
     }
 }
 
@@ -185,7 +191,7 @@ void PeekController::updateCurrent()
         for (QDirIterator it(info.absoluteFilePath(), QDir::AllEntries | QDir::NoDotAndDotDot | QDir::Hidden | QDir::System); it.hasNext(); it.next()) {
             ++entries;
         }
-        m_sizeText = i18ncp("@info folder contents", "%1 item", "%1 items", entries);
+        m_sizeText = info.isReadable() ? i18ncp("@info folder contents", "%1 item", "%1 items", entries) : i18nc("@info folder contents", "Not readable");
     } else {
         m_sizeText = current.isLocalFile() ? KFormat().formatByteSize(info.size()) : QString();
     }

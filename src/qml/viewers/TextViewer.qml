@@ -38,20 +38,33 @@ Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
 
-            SourceText {
-                text: loader.text
-                fileName: PeekController.fileName
-                highlight: loader.highlight
-                zoom: root.zoom
+            // Not the TextArea itself: as a ScrollView's direct child it scrolls to its cursor (at the
+            // top) whenever its layout changes, so zooming or resizing jumped back to the first line.
+            Item {
+                implicitWidth: source.wrap ? scroll.availableWidth : source.implicitWidth
+                implicitHeight: source.implicitHeight
+
+                SourceText {
+                    id: source
+                    anchors.fill: parent
+                    text: loader.text
+                    fileName: PeekController.fileName
+                    highlight: loader.highlight
+                    zoom: root.zoom
+                }
             }
         }
+    }
+
+    RelativeScrollAnchor {
+        flickable: root.scrollTarget
     }
 
     Kirigami.PlaceholderMessage {
         anchors.centerIn: parent
         width: parent.width - Kirigami.Units.gridUnit * 4
-        visible: loader.failed
-        icon.name: "dialog-error"
-        text: i18nc("@info", "This file could not be read")
+        visible: loader.failed || loader.text.length === 0
+        icon.name: loader.failed ? "dialog-error" : PeekController.iconName
+        text: loader.failed ? i18nc("@info", "This file could not be read") : i18nc("@info", "This file is empty")
     }
 }

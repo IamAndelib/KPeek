@@ -31,6 +31,8 @@ Rectangle {
     readonly property size naturalSize: Qt.size(pixelSize.width / PeekController.devicePixelRatio, pixelSize.height / PeekController.devicePixelRatio)
     readonly property real fitScale: naturalSize.width > 0 && naturalSize.height > 0
         ? Math.min(1, flick.width / naturalSize.width, flick.height / naturalSize.height) : 1
+    // Zoom is relative to the fitted size: allow at least 200% of the real pixels (up to 6400%).
+    readonly property real maxZoom: Math.min(64, Math.max(4, 2 / fitScale))
     readonly property real shownWidth: naturalSize.width * fitScale * zoom
     readonly property real shownHeight: naturalSize.height * fitScale * zoom
 

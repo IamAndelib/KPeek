@@ -21,6 +21,7 @@ add_executable(kpeek
     archivemodel.cpp archivemodel.h
     archivereader.h
     comicbook.cpp comicbook.h
+    fontfile.cpp fontfile.h
     imageresponse.h
     workerpool.h
 )
@@ -31,6 +32,7 @@ qt_add_qml_module(kpeek
     QML_FILES
         qml/Main.qml
         qml/PageView.qml
+        qml/RelativeScrollAnchor.qml
         qml/SourceText.qml
         qml/ViewerInput.qml
         qml/viewers/ArchiveViewer.qml

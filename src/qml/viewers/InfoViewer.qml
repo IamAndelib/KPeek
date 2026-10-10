@@ -36,8 +36,9 @@ Rectangle {
             source: PeekController.iconName
             fallback: PeekController.isFolder ? "folder" : "unknown"
             Layout.alignment: Qt.AlignHCenter
-            Layout.preferredWidth: Kirigami.Units.iconSizes.enormous
-            Layout.preferredHeight: Kirigami.Units.iconSizes.enormous
+            // Smaller in short windows, so the details below stay visible.
+            Layout.preferredWidth: Math.min(Kirigami.Units.iconSizes.enormous, root.height / 4)
+            Layout.preferredHeight: Layout.preferredWidth
         }
 
         Kirigami.Heading {
@@ -59,10 +60,12 @@ Rectangle {
             QQC2.Label {
                 Kirigami.FormData.label: PeekController.isFolder ? i18nc("@label", "Contains:") : i18nc("@label", "Size:")
                 text: PeekController.sizeText
+                visible: text.length > 0 // remote files
             }
             QQC2.Label {
                 Kirigami.FormData.label: i18nc("@label", "Modified:")
                 text: PeekController.modified.toLocaleString(Qt.locale(), Locale.ShortFormat)
+                visible: !isNaN(PeekController.modified) // remote files
             }
         }
     }

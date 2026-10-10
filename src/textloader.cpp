@@ -3,6 +3,7 @@
 
 #include "textloader.h"
 
+#include <QDebug>
 #include <QFile>
 #include <QStringDecoder>
 
@@ -21,6 +22,9 @@ void TextLoader::setUrl(const QUrl &url)
 
     QFile file(url.toLocalFile());
     m_failed = !file.open(QIODevice::ReadOnly);
+    if (m_failed) {
+        qWarning() << "Could not read" << file.fileName() << file.errorString();
+    }
     m_truncated = !m_failed && file.size() > MaxBytes;
     m_text = m_failed ? QString() : breakLongLines(decode(file.read(MaxBytes), !m_truncated));
     Q_EMIT loaded();

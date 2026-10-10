@@ -100,13 +100,25 @@ Rectangle {
         icon.name: "format-text-code"
         text: i18nc("@action:button", "Show Source")
         onToggled: root.showSource = checked
+        QQC2.ToolTip.text: i18nc("@info:tooltip", "Show the Markdown source (Ctrl+U)")
+        QQC2.ToolTip.visible: hovered
+    }
+
+    Shortcut {
+        sequence: "Ctrl+U" // "view source", as in web browsers
+        enabled: loader.highlight
+        onActivated: root.showSource = !root.showSource
+    }
+
+    RelativeScrollAnchor {
+        flickable: root.scrollTarget
     }
 
     Kirigami.PlaceholderMessage {
         anchors.centerIn: parent
         width: parent.width - Kirigami.Units.gridUnit * 4
-        visible: loader.failed
-        icon.name: "dialog-error"
-        text: i18nc("@info", "This file could not be read")
+        visible: loader.failed || loader.text.length === 0
+        icon.name: loader.failed ? "dialog-error" : PeekController.iconName
+        text: loader.failed ? i18nc("@info", "This file could not be read") : i18nc("@info", "This file is empty")
     }
 }
