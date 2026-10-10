@@ -51,17 +51,25 @@ Rectangle {
     readonly property bool detailDecodable: pixelSize.width * pixelSize.height <= 256e6
     onBaseTooSmallChanged: if (baseTooSmall && detailDecodable) wantsDetail = true
 
-    // Keep the point at the center of the view in place while zooming.
+    // Keep the image point under the view's centre in place while zooming. The new position is
+    // computed from the zoom formula and set in this same handler: deferring it (or reading bindings
+    // that may not have updated yet) lets one frame show the new size at the old position, which
+    // flickers whenever the image is larger than the view.
     property real lastZoom: 1.0
     onZoomChanged: {
-        const ratio = zoom / lastZoom;
+        const before = Qt.size(naturalSize.width * fitScale * lastZoom, naturalSize.height * fitScale * lastZoom);
+        const after = Qt.size(naturalSize.width * fitScale * zoom, naturalSize.height * fitScale * zoom);
         lastZoom = zoom;
-        const cx = flick.contentX + flick.width / 2;
-        const cy = flick.contentY + flick.height / 2;
-        Qt.callLater(() => {
-            flick.contentX = Math.max(0, Math.min(cx * ratio - flick.width / 2, flick.contentWidth - flick.width));
-            flick.contentY = Math.max(0, Math.min(cy * ratio - flick.height / 2, flick.contentHeight - flick.height));
-        });
+        if (before.width <= 0 || before.height <= 0) {
+            return;
+        }
+        // The canvas is centred in the content when smaller than the view (see canvas.x/y).
+        const fx = (flick.contentX + flick.width / 2 - Math.max(0, flick.width - before.width) / 2) / before.width;
+        const fy = (flick.contentY + flick.height / 2 - Math.max(0, flick.height - before.height) / 2) / before.height;
+        const contentWidth = Math.max(flick.width, after.width);
+        const contentHeight = Math.max(flick.height, after.height);
+        flick.contentX = Math.max(0, Math.min(fx * after.width + (contentWidth - after.width) / 2 - flick.width / 2, contentWidth - flick.width));
+        flick.contentY = Math.max(0, Math.min(fy * after.height + (contentHeight - after.height) / 2 - flick.height / 2, contentHeight - flick.height));
     }
 
 

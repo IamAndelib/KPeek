@@ -16,22 +16,42 @@ Rectangle {
     readonly property Flickable scrollTarget: view
     readonly property bool dragPans: true
     readonly property real fitWidth: Math.max(Kirigami.Units.gridUnit * 10, view.width - Kirigami.Units.largeSpacing * 2)
-    readonly property real pageWidth: fitWidth * zoom
+    // Set by layoutPages() (not a binding) so that size and scroll position change in a known order.
+    property real pageWidth: fitWidth
     // Render width in device pixels: rounded up to 256 px steps so resizing the window
     // doesn't re-render every page, and capped to bound memory when zoomed in.
     readonly property int renderWidth: Math.min(4096, Math.ceil(pageWidth * Screen.devicePixelRatio / 256) * 256)
 
-    // Keep the point at the center of the view in place while zooming.
+    // Keep the point under the view's centre in place while zooming. Everything happens here, in order:
+    // deferring the scroll position lets one frame show the new size at the old position (flicker), and
+    // setting it before the content has grown gets it clamped. Horizontally the page is centred in the
+    // content; vertically, pages scale but the gaps between them don't, so the anchor is "page k,
+    // fraction t down that page".
     property real lastZoom: 1.0
-    onZoomChanged: {
+    onZoomChanged: layoutPages()
+    onFitWidthChanged: layoutPages()
+
+    function layoutPages() {
         const ratio = zoom / lastZoom;
         lastZoom = zoom;
-        const cx = view.contentX + view.width / 2;
-        const cy = view.contentY - view.originY + view.height / 2;
-        Qt.callLater(() => {
-            view.contentX = Math.max(0, Math.min(cx * ratio - view.width / 2, view.contentWidth - view.width));
-            view.contentY = view.originY + Math.max(0, Math.min(cy * ratio - view.height / 2, view.contentHeight - view.height));
-        });
+        const pageBefore = pageWidth;
+        const margin = Kirigami.Units.largeSpacing * 2;
+        const contentBefore = Math.max(view.width, pageBefore + margin);
+        const fx = (view.contentX + view.width / 2 - (contentBefore - pageBefore) / 2) / pageBefore;
+        const centreY = view.contentY + view.height / 2;
+        const index = view.indexAt(view.contentX + view.width / 2, centreY);
+        const item = index >= 0 ? view.itemAtIndex(index) : null;
+        const t = item ? (centreY - item.y) / item.height : 0;
+        const itemY = item ? item.y : 0;
+
+        pageWidth = fitWidth * zoom; // resizes pages and content width right away
+
+        const contentAfter = Math.max(view.width, pageWidth + margin);
+        view.contentX = Math.max(0, Math.min(fx * pageWidth + (contentAfter - pageWidth) / 2 - view.width / 2, contentAfter - view.width));
+        if (item && ratio !== 1) {
+            const yAfter = (itemY - index * view.spacing) * ratio + index * view.spacing;
+            view.contentY = yAfter + t * item.height - view.height / 2;
+        }
     }
 
     color: Kirigami.Theme.alternateBackgroundColor
