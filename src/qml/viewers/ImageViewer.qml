@@ -12,6 +12,7 @@ Rectangle {
 
     property real zoom: 1.0
     readonly property Flickable scrollTarget: flick
+    readonly property bool dragPans: true
 
     // Natural size in logical pixels (from the file header, or the decoded image for formats
     // that can't report it up front), and the size it is shown at.

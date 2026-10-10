@@ -14,6 +14,7 @@ Rectangle {
     property alias url: document.url
     property real zoom: 1.0
     readonly property Flickable scrollTarget: view
+    readonly property bool dragPans: true
     readonly property real fitWidth: Math.max(Kirigami.Units.gridUnit * 10, view.width - Kirigami.Units.largeSpacing * 2)
     readonly property real pageWidth: fitWidth * zoom
     // Render width in device pixels: rounded up to 256 px steps so resizing the window

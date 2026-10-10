@@ -97,6 +97,7 @@ QQC2.ApplicationWindow {
                     QQC2.ToolTip.visible: hovered
                 }
                 QQC2.Label {
+                    id: zoomLabel
                     text: i18nc("@info zoom level", "%1%", Math.round(input.zoom * 100))
                     horizontalAlignment: Text.AlignHCenter
                     font.features: { "tnum": 1 }
@@ -105,7 +106,7 @@ QQC2.ApplicationWindow {
 
                     TextMetrics {
                         id: zoomLabelMetrics
-                        font: parent.font
+                        font: zoomLabel.font
                         text: i18nc("@info zoom level", "%1%", 400)
                     }
                 }

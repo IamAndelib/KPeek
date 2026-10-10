@@ -8,10 +8,14 @@ import org.kde.kirigami as Kirigami
  * Wheel, drag and key handling shared by all viewers. It sits on top of the viewer.
  *
  * A viewer takes part by exposing `scrollTarget` (its Flickable, or null when it has
- * nothing to scroll) and, if zooming means something for it, a `zoom` property.
+ * nothing to scroll), a `zoom` property if zooming means something for it, and
+ * `dragPans: true` if a plain drag pans its content (nothing to select, as in images).
  *  - Ctrl+wheel zooms. The plain wheel isn't touched: it scrolls the viewer natively.
- *  - Ctrl+left-drag pans the content.
+ *  - Ctrl+left-drag pans; so does a plain drag in `dragPans` viewers (their Flickable does it).
+ *    A hand cursor hints at both: open while hovering, closed while the button is held.
  *  - Up/Down/PgUp/PgDn/Home/End scroll.
+ *
+ * Debug output: QT_LOGGING_RULES="kpeek.input.debug=true"
  */
 Item {
     id: input
@@ -21,6 +25,8 @@ Item {
     readonly property Flickable flickable: viewer?.scrollTarget ?? null
 
     readonly property bool zoomable: viewer !== null && "zoom" in viewer
+    readonly property bool dragPans: viewer?.dragPans ?? false
+    readonly property bool pannable: flickable !== null && (flickable.contentHeight > flickable.height + 1 || flickable.contentWidth > flickable.width + 1)
     readonly property real minZoom: 0.25
     readonly property real maxZoom: 4.0
 
@@ -32,10 +38,6 @@ Item {
         const f = flickable;
         f.contentX = Math.max(f.originX, Math.min(x, f.originX + Math.max(0, f.contentWidth - f.width)));
         f.contentY = Math.max(f.originY, Math.min(y, f.originY + Math.max(0, f.contentHeight - f.height)));
-    }
-
-    function canScroll() {
-        return flickable !== null && (flickable.contentHeight > flickable.height + 1 || flickable.contentWidth > flickable.width + 1);
     }
 
     function handleKey(event) {
@@ -58,12 +60,45 @@ Item {
         event.accepted = true;
     }
 
+    LoggingCategory {
+        id: log
+        name: "kpeek.input"
+        defaultLogLevel: LoggingCategory.Warning
+    }
+
+    // Wayland only tells a window which modifier keys are held while it has keyboard focus.
+    Connections {
+        target: input.Window.window
+        function onActiveChanged() {
+            console.debug(log, "window active:", input.Window.window.active);
+        }
+    }
+
     WheelHandler {
         target: null
+        // WheelHandler only takes mouse-type devices by default, but Qt on Wayland reports wheel
+        // events from a "touchpad"-typed device, even for a real mouse wheel.
+        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
         acceptedModifiers: Qt.ControlModifier
         enabled: input.zoomable
         // 120 per mouse wheel notch; touchpads send smaller steps for smooth zooming.
-        onWheel: event => input.zoomBy(event.angleDelta.y / 120)
+        onWheel: event => {
+            console.debug(log, "Ctrl+wheel", event.angleDelta, event.pixelDelta, "zoom", input.zoom);
+            input.zoomBy(event.angleDelta.y / 120);
+        }
+    }
+
+    // Grab-hand hints. Neither handler grabs the pointer, so the viewer's own dragging is unaffected.
+    HoverHandler {
+        enabled: input.pannable && input.dragPans
+        cursorShape: Qt.OpenHandCursor
+    }
+    PointHandler {
+        id: pressHint
+        enabled: input.pannable
+        acceptedButtons: Qt.LeftButton
+        acceptedModifiers: input.dragPans ? Qt.KeyboardModifierMask : Qt.ControlModifier
+        cursorShape: Qt.ClosedHandCursor
     }
 
     DragHandler {
@@ -73,8 +108,9 @@ Item {
 
         target: null
         acceptedModifiers: Qt.ControlModifier
-        enabled: input.canScroll()
-        cursorShape: active ? Qt.ClosedHandCursor : Qt.ArrowCursor
+        // Viewers where a plain drag pans do it with their own Flickable; this adds Ctrl+drag everywhere else.
+        enabled: input.pannable && !input.dragPans
+        cursorShape: Qt.ClosedHandCursor
         onActiveChanged: {
             if (active) {
                 startContent = Qt.point(input.flickable.contentX, input.flickable.contentY);

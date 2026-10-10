@@ -13,6 +13,7 @@ Rectangle {
 
     property real zoom: 1.0
     readonly property Flickable scrollTarget: pdfLoader.item?.scrollTarget ?? null
+    readonly property bool dragPans: true
 
     color: Kirigami.Theme.backgroundColor
 

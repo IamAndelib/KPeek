@@ -28,3 +28,7 @@ add_executable(qmltests qmltests.cpp)
 target_link_libraries(qmltests Qt6::QuickTest Qt6::QuickControls2 Qt6::Widgets)
 add_test(NAME qmltests COMMAND qmltests -input ${CMAKE_CURRENT_SOURCE_DIR}/qml)
 set_tests_properties(qmltests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+ecm_add_test(viewerinputtest.cpp TEST_NAME viewerinputtest LINK_LIBRARIES Qt6::Test Qt6::Quick)
+target_compile_definitions(viewerinputtest PRIVATE KPEEK_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/qml")
+set_tests_properties(viewerinputtest PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
