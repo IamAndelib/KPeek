@@ -19,7 +19,6 @@ class FileNavigator
 public:
     void setSelection(const QList<QUrl> &urls);
 
-    QList<QUrl> items() const;
     int currentIndex() const;
     int count() const;
     QUrl current() const;
@@ -27,19 +26,29 @@ public:
     /// Move by @p step, wrapping around at both ends.
     void step(int step);
 
-    /// True when @p urls would reopen exactly what is shown now (used for Space toggling).
+    /// True when @p urls would reopen exactly what is shown now (so invoking KPeek again on it closes the preview).
     bool matchesSelection(const QList<QUrl> &urls) const;
 
+    struct Siblings {
+        QString dir;
+        QDateTime dirModified;
+        QList<QUrl> urls;
+    };
+    /// The files and folders next to @p url, sorted like Dolphin. Slow for huge folders: listing and
+    /// sorting 100k entries takes about half a second, so this runs on the worker pool.
+    static Siblings listSiblings(const QUrl &url);
     static QList<QUrl> siblings(const QUrl &url);
 
-private:
-    /// siblings(), reusing the previous listing while the folder is unchanged:
-    /// every key press in Dolphin re-invokes KPeek, and sorting a 100k-file folder isn't free.
-    QList<QUrl> cachedSiblings(const QUrl &url);
+    /// After setSelection() of a single file whose folder isn't listed yet: it is browsed alone
+    /// until setSiblings() delivers the listing.
+    bool siblingsNeeded() const;
+    /// Takes a listing (also kept for the next selection in that folder while it is unchanged:
+    /// every key press in Dolphin re-invokes KPeek).
+    void setSiblings(const Siblings &siblings);
 
-    QString m_cachedDir;
-    QDateTime m_cachedDirModified;
-    QList<QUrl> m_cachedSiblings;
+private:
+    Siblings m_cache;
+    bool m_siblingsNeeded = false;
 
     QList<QUrl> m_selection;
     QList<QUrl> m_items;

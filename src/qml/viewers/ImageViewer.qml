@@ -14,7 +14,7 @@ import io.github.iamandelib.kpeek
  *  1. Dolphin's cached thumbnail, shown instantly while the image decodes;
  *  2. the base: the whole image decoded once at screen size, which is all most previews ever need;
  *  3. full detail: the first time zooming needs more pixels than the base has, the image is decoded
- *     once more at its own size (at most 8192 px, within GPU texture limits). It appears on top only
+ *     once more at its own size (at most 8192 px). It appears on top only
  *     when ready; until then the base keeps showing, scaled. After that, zooming is pure GPU scaling.
  */
 Rectangle {
@@ -46,7 +46,9 @@ Rectangle {
         return fits ? undefined : box;
     }
 
-    readonly property int detailCap: PeekController.lowMemory ? 4096 : 8192
+    // Also within the GPU's texture limit (4096 or 8192 on older integrated GPUs), past which Qt
+    // would shrink the image again on the CPU before every upload.
+    readonly property int detailCap: Math.min(PeekController.lowMemory ? 4096 : 8192, PeekController.maxTextureSize)
 
     readonly property bool baseReady: base.item?.status === Image.Ready
     // Set (for good) the first time the image is shown larger than the base decode resolves.

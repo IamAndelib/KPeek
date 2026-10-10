@@ -16,6 +16,7 @@ void FileNavigator::setSelection(const QList<QUrl> &urls)
     m_selection = urls;
     m_items.clear();
     m_index = -1;
+    m_siblingsNeeded = false;
 
     if (urls.isEmpty()) {
         return;
@@ -28,18 +29,41 @@ void FileNavigator::setSelection(const QList<QUrl> &urls)
     }
 
     const QUrl url = urls.first();
-    m_items = cachedSiblings(url);
-    m_index = m_items.indexOf(url);
-    if (m_index < 0) {
-        // Hidden or unlistable file: still preview it, just without siblings.
-        m_items = {url};
-        m_index = 0;
+    m_items = {url};
+    m_index = 0;
+    m_siblingsNeeded = false;
+    if (!url.isLocalFile()) {
+        return;
+    }
+    const QFileInfo dir(QFileInfo(url.toLocalFile()).absolutePath());
+    if (dir.absoluteFilePath() == m_cache.dir && dir.lastModified() == m_cache.dirModified) {
+        setSiblings(m_cache);
+    } else {
+        m_siblingsNeeded = true;
     }
 }
 
-QList<QUrl> FileNavigator::items() const
+bool FileNavigator::siblingsNeeded() const
 {
-    return m_items;
+    return m_siblingsNeeded;
+}
+
+void FileNavigator::setSiblings(const Siblings &siblings)
+{
+    if (m_selection.isEmpty()) {
+        return; // released while the listing ran
+    }
+    m_cache = siblings;
+    m_siblingsNeeded = false;
+    if (m_selection.size() != 1) {
+        return;
+    }
+    // Hidden or unlistable files aren't in the listing: they are still previewed, just alone.
+    const int index = siblings.urls.indexOf(m_selection.first());
+    if (index >= 0) {
+        m_items = siblings.urls;
+        m_index = index;
+    }
 }
 
 int FileNavigator::currentIndex() const
@@ -77,18 +101,11 @@ bool FileNavigator::matchesSelection(const QList<QUrl> &urls) const
     return urls == m_selection;
 }
 
-QList<QUrl> FileNavigator::cachedSiblings(const QUrl &url)
+FileNavigator::Siblings FileNavigator::listSiblings(const QUrl &url)
 {
-    if (!url.isLocalFile()) {
-        return {url};
-    }
     const QFileInfo dir(QFileInfo(url.toLocalFile()).absolutePath());
-    if (dir.absoluteFilePath() != m_cachedDir || dir.lastModified() != m_cachedDirModified) {
-        m_cachedDir = dir.absoluteFilePath();
-        m_cachedDirModified = dir.lastModified();
-        m_cachedSiblings = siblings(url);
-    }
-    return m_cachedSiblings;
+    // The folder's time is taken first: a file added during the listing then makes it stale.
+    return {dir.absoluteFilePath(), dir.lastModified(), siblings(url)};
 }
 
 QList<QUrl> FileNavigator::siblings(const QUrl &url)

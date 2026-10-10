@@ -4,6 +4,7 @@
 #pragma once
 
 #include <QDateTime>
+#include <QFutureWatcher>
 #include <QObject>
 #include <QPointer>
 #include <QQmlEngine>
@@ -34,10 +35,11 @@ class PeekController : public QObject
     Q_PROPERTY(QString mimeComment READ mimeComment NOTIFY currentChanged)
     Q_PROPERTY(QString iconName READ iconName NOTIFY currentChanged)
     Q_PROPERTY(bool isFolder READ isFolder NOTIFY currentChanged)
-    Q_PROPERTY(QString sizeText READ sizeText NOTIFY currentChanged)
+    Q_PROPERTY(QString sizeText READ sizeText NOTIFY sizeTextChanged)
+    Q_PROPERTY(qint64 fileSize READ fileSize NOTIFY currentChanged)
     Q_PROPERTY(QDateTime modified READ modified NOTIFY currentChanged)
-    Q_PROPERTY(int index READ index NOTIFY currentChanged)
-    Q_PROPERTY(int count READ count NOTIFY currentChanged)
+    Q_PROPERTY(int index READ index NOTIFY positionChanged)
+    Q_PROPERTY(int count READ count NOTIFY positionChanged)
     /// Whether a preview is on screen. The viewer exists only while this is true.
     Q_PROPERTY(bool showing READ showing NOTIFY showingChanged)
     Q_PROPERTY(QSize imageSize READ imageSize NOTIFY currentChanged)
@@ -45,6 +47,8 @@ class PeekController : public QObject
     /// The window's own scale factor. With fractional scaling (e.g. 125%) it differs from
     /// Screen.devicePixelRatio, which reports the output's rounded-up integer scale.
     Q_PROPERTY(qreal devicePixelRatio READ devicePixelRatio NOTIFY devicePixelRatioChanged)
+    /// The largest texture the GPU takes, in pixels (known once the window has rendered).
+    Q_PROPERTY(int maxTextureSize READ maxTextureSize NOTIFY maxTextureSizeChanged)
     /// See isLowMemorySystem(): lower caps for image decoding.
     Q_PROPERTY(bool lowMemory READ lowMemory CONSTANT)
     /// Dolphin's cached thumbnail of the file, shown instantly while the real content loads; may be empty.
@@ -68,6 +72,7 @@ public:
     QString iconName() const;
     bool isFolder() const;
     QString sizeText() const;
+    qint64 fileSize() const;
     QDateTime modified() const;
     int index() const;
     int count() const;
@@ -76,6 +81,7 @@ public:
     bool animated() const;
     bool lowMemory() const;
     qreal devicePixelRatio() const;
+    int maxTextureSize() const;
     QUrl thumbnail() const;
 
 public Q_SLOTS:
@@ -86,8 +92,12 @@ public Q_SLOTS:
 
 Q_SIGNALS:
     void currentChanged();
+    /// index or count changed without a new current file (the folder listing arrived).
+    void positionChanged();
+    void sizeTextChanged();
     void showingChanged();
     void devicePixelRatioChanged();
+    void maxTextureSizeChanged();
 
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
@@ -97,6 +107,12 @@ private:
     void raiseWindow();
 
     FileNavigator m_navigator;
+    QFutureWatcher<FileNavigator::Siblings> m_siblingsWatcher;
+    struct FolderSize {
+        QString path;
+        QString text;
+    };
+    QFutureWatcher<FolderSize> m_folderSizeWatcher;
     QPointer<QQuickWindow> m_window;
     QTimer m_idleQuitTimer;
     bool m_showing = false;
@@ -106,8 +122,10 @@ private:
     QString m_iconName;
     bool m_isFolder = false;
     QString m_sizeText;
+    qint64 m_fileSize = 0;
     QDateTime m_modified;
     QSize m_imageSize; ///< natural size, EXIF orientation applied; only set for the image viewer
     bool m_animated = false;
     QUrl m_thumbnail;
+    int m_maxTextureSize = 8192; // a safe guess until the GPU says otherwise
 };

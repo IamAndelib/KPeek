@@ -32,6 +32,8 @@ qt_standard_project_setup(REQUIRES 6.8)
 
 find_package(KF6 ${KF_MIN_VERSION} REQUIRED COMPONENTS CoreAddons I18n Crash DBusAddons WindowSystem)
 find_package(LibArchive REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(DBus REQUIRED IMPORTED_TARGET dbus-1)
 find_package(Poppler REQUIRED COMPONENTS Qt6)
 
 # QML modules used only at runtime by the viewers.

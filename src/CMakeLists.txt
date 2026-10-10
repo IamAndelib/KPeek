@@ -22,6 +22,7 @@ add_executable(kpeek
     archivereader.h
     comicbook.cpp comicbook.h
     fontfile.cpp fontfile.h
+    forwarder.cpp forwarder.h
     imageresponse.h
     workerpool.h
 )
@@ -63,6 +64,7 @@ target_link_libraries(kpeek PRIVATE
     Qt6::Network
     Poppler::Qt6
     LibArchive::LibArchive
+    PkgConfig::DBus
     KF6::CoreAddons
     KF6::I18n
     KF6::I18nQml

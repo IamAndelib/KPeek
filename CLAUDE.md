@@ -36,6 +36,11 @@ Read README.md first; it covers the features, the Dolphin integration (service m
   there. Headless tests of it need real GL: run under `Xvfb` with `QT_QPA_PLATFORM=xcb`, not `offscreen`.
 - Formats with no viewer (camera RAW, Blender…) fall back to Dolphin's thumbnail on the info card; don't add
   decoders the Flatpak runtime lacks.
+- A second invocation forwards its arguments in `src/forwarder.cpp` (plain libdbus, before QApplication
+  exists, saving 40–70 ms per key press). It speaks KDBusService's `CommandLine` protocol: keep the two in sync.
+- Resident memory: `close()` releases caches, and `main()` limits glibc to two malloc arenas (decoder threads
+  otherwise strand hundreds of MB). Large 3D models load only on request. Measure before/after with
+  `/proc/<pid>/smaps_rollup` (Private_Dirty), not RSS.
 - Background work goes on `workerPool()` (`src/workerpool.h`), never `QThreadPool::globalInstance()`.
 - Never set a KSyntaxHighlighting `SyntaxHighlighter.textEdit` to null: it crashes. Swap components instead.
 - Qt on Wayland reports wheel events (even from a real mouse) with a "touchpad"-typed device: any

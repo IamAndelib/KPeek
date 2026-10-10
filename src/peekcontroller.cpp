@@ -6,6 +6,7 @@
 #include "systeminfo.h"
 #include "thumbnailcache.h"
 #include "viewerresolver.h"
+#include "workerpool.h"
 
 #include <KFormat>
 #include <KLocalizedString>
@@ -19,7 +20,10 @@
 #include <QFileInfo>
 #include <QImageReader>
 #include <QMimeDatabase>
+#include <QOpenGLContext>
+#include <QOpenGLFunctions>
 #include <QQuickWindow>
+#include <QtConcurrentRun>
 
 #ifdef __GLIBC__
 #include <malloc.h>
@@ -44,6 +48,20 @@ PeekController::PeekController(QObject *parent)
     m_idleQuitTimer.setSingleShot(true);
     m_idleQuitTimer.setInterval(IdleQuitTimeout);
     connect(&m_idleQuitTimer, &QTimer::timeout, qApp, &QCoreApplication::quit);
+
+    // setFuture() drops the results of earlier, abandoned requests. takeResult(): a finished future
+    // would otherwise keep its copy of a 100k-entry listing for as long as the process stays resident.
+    connect(&m_siblingsWatcher, &QFutureWatcher<FileNavigator::Siblings>::finished, this, [this] {
+        m_navigator.setSiblings(m_siblingsWatcher.future().takeResult());
+        Q_EMIT positionChanged();
+    });
+    connect(&m_folderSizeWatcher, &QFutureWatcher<FolderSize>::finished, this, [this] {
+        const FolderSize size = m_folderSizeWatcher.future().takeResult();
+        if (m_isFolder && size.path == QFileInfo(url().toLocalFile()).absoluteFilePath()) { // not a stale count
+            m_sizeText = size.text;
+            Q_EMIT sizeTextChanged();
+        }
+    });
 }
 
 PeekController *PeekController::create(QQmlEngine *, QJSEngine *)
@@ -56,6 +74,25 @@ void PeekController::setWindow(QQuickWindow *window)
 {
     m_window = window;
     window->installEventFilter(this);
+    // Called on the render thread with the OpenGL context current (the default backend on Linux),
+    // where the GPU can be asked; the property is set on this thread. Other backends keep the guess.
+    connect(
+        window,
+        &QQuickWindow::sceneGraphInitialized,
+        this,
+        [this] {
+            GLint limit = 0;
+            if (QOpenGLContext *context = QOpenGLContext::currentContext()) {
+                context->functions()->glGetIntegerv(GL_MAX_TEXTURE_SIZE, &limit);
+            }
+            if (limit > 0) {
+                QMetaObject::invokeMethod(this, [this, limit] {
+                    m_maxTextureSize = limit;
+                    Q_EMIT maxTextureSizeChanged();
+                });
+            }
+        },
+        Qt::DirectConnection);
 }
 
 bool PeekController::eventFilter(QObject *watched, QEvent *event)
@@ -79,6 +116,10 @@ void PeekController::showFiles(const QList<QUrl> &urls, bool toggle)
     }
 
     m_navigator.setSelection(urls);
+    if (m_navigator.siblingsNeeded()) {
+        // Shown alone right away; the arrows work once the folder is listed.
+        m_siblingsWatcher.setFuture(QtConcurrent::run(workerPool(), &FileNavigator::listSiblings, urls.first()));
+    }
     updateCurrent();
     raiseWindow();
 }
@@ -106,8 +147,8 @@ void PeekController::close()
 
     // Hide only after one frame without the viewer has been drawn: the scene graph frees the
     // textures of destroyed items while rendering, which a hidden window never does. Then hand the
-    // rest back too, since the process stays resident: scene-graph caches, open PDF documents and
-    // freed heap. The timer is a fallback in case no frame gets rendered (e.g. the window is covered).
+    // rest back too, since the process stays resident: scene-graph caches, open PDF documents, the
+    // folder listing, JavaScript garbage and freed heap. The timer is a fallback in case no frame gets rendered (e.g. the window is covered).
     auto hideAndRelease = [this] {
         if (!m_window || m_showing || !m_window->isVisible()) {
             return;
@@ -115,6 +156,12 @@ void PeekController::close()
         m_window->hide();
         m_window->releaseResources();
         PdfDocument::releaseCache();
+        // The next preview starts a new selection anyway; a 100k-file folder listing alone is ~100 MB.
+        m_navigator = FileNavigator();
+        if (QQmlEngine *engine = qmlEngine(m_window)) {
+            engine->collectGarbage();
+            engine->trimComponentCache();
+        }
 #ifdef __GLIBC__
         malloc_trim(0);
 #endif
@@ -168,6 +215,7 @@ void PeekController::updateCurrent()
     m_mimeComment = mime.comment();
     m_iconName = mime.iconName();
     m_isFolder = info.isDir();
+    m_fileSize = info.isFile() ? info.size() : 0;
     m_modified = info.lastModified();
 
     // Shown while images and video load, and in place of the icon for files without a viewer.
@@ -187,16 +235,25 @@ void PeekController::updateCurrent()
     }
 
     if (m_isFolder) {
-        int entries = 0;
-        for (QDirIterator it(info.absoluteFilePath(), QDir::AllEntries | QDir::NoDotAndDotDot | QDir::Hidden | QDir::System); it.hasNext(); it.next()) {
-            ++entries;
-        }
-        m_sizeText = info.isReadable() ? i18ncp("@info folder contents", "%1 item", "%1 items", entries) : i18nc("@info folder contents", "Not readable");
+        // Counting a huge folder (or one on a network share) takes a while: off the GUI thread.
+        m_sizeText = QStringLiteral("…");
+        m_folderSizeWatcher.setFuture(QtConcurrent::run(workerPool(), [path = info.absoluteFilePath()] {
+            if (!QFileInfo(path).isReadable()) {
+                return FolderSize{path, i18nc("@info folder contents", "Not readable")};
+            }
+            int entries = 0;
+            for (QDirIterator it(path, QDir::AllEntries | QDir::NoDotAndDotDot | QDir::Hidden | QDir::System); it.hasNext(); it.next()) {
+                ++entries;
+            }
+            return FolderSize{path, i18ncp("@info folder contents", "%1 item", "%1 items", entries)};
+        }));
     } else {
         m_sizeText = current.isLocalFile() ? KFormat().formatByteSize(info.size()) : QString();
     }
 
     Q_EMIT currentChanged();
+    Q_EMIT positionChanged();
+    Q_EMIT sizeTextChanged();
 }
 
 QUrl PeekController::url() const
@@ -254,6 +311,11 @@ bool PeekController::showing() const
     return m_showing;
 }
 
+qint64 PeekController::fileSize() const
+{
+    return m_fileSize;
+}
+
 QSize PeekController::imageSize() const
 {
     return m_imageSize;
@@ -267,6 +329,11 @@ bool PeekController::animated() const
 qreal PeekController::devicePixelRatio() const
 {
     return m_window ? m_window->devicePixelRatio() : 1.0;
+}
+
+int PeekController::maxTextureSize() const
+{
+    return m_maxTextureSize;
 }
 
 bool PeekController::lowMemory() const

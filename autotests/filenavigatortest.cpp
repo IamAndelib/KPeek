@@ -9,6 +9,18 @@
 #include <QTemporaryDir>
 #include <QTest>
 
+namespace
+{
+/// What PeekController does, synchronously: the folder listing normally arrives from the worker pool.
+void select(FileNavigator &nav, const QList<QUrl> &urls)
+{
+    nav.setSelection(urls);
+    if (nav.siblingsNeeded()) {
+        nav.setSiblings(FileNavigator::listSiblings(urls.first()));
+    }
+}
+}
+
 class FileNavigatorTest : public QObject
 {
     Q_OBJECT
@@ -50,7 +62,7 @@ void FileNavigatorTest::init()
 void FileNavigatorTest::testSingleFileBrowsesFolder()
 {
     FileNavigator nav;
-    nav.setSelection({urlFor(QStringLiteral("b.txt"))});
+    select(nav, {urlFor(QStringLiteral("b.txt"))});
     QCOMPARE(nav.count(), 4); // zfolder, A2, a10, b; .hidden excluded
     QCOMPARE(nav.current(), urlFor(QStringLiteral("b.txt")));
     QCOMPARE(nav.currentIndex(), 3);
@@ -79,7 +91,7 @@ void FileNavigatorTest::testNaturalSortInCLocale()
 void FileNavigatorTest::testHiddenFileStillShown()
 {
     FileNavigator nav;
-    nav.setSelection({urlFor(QStringLiteral(".hidden"))});
+    select(nav, {urlFor(QStringLiteral(".hidden"))});
     QCOMPARE(nav.count(), 1);
     QCOMPARE(nav.current(), urlFor(QStringLiteral(".hidden")));
 }
@@ -88,15 +100,19 @@ void FileNavigatorTest::testMultiSelectionBrowsesOnlySelection()
 {
     const QList<QUrl> selection = {urlFor(QStringLiteral("b.txt")), urlFor(QStringLiteral("A2.txt"))};
     FileNavigator nav;
-    nav.setSelection(selection);
-    QCOMPARE(nav.items(), selection);
+    select(nav, selection);
+    QCOMPARE(nav.count(), selection.size());
+    QCOMPARE(nav.current(), selection.first());
+    nav.step(1);
+    QCOMPARE(nav.current(), selection.last());
+    nav.step(-1);
     QCOMPARE(nav.currentIndex(), 0);
 }
 
 void FileNavigatorTest::testStepWraps()
 {
     FileNavigator nav;
-    nav.setSelection({urlFor(QStringLiteral("b.txt"))});
+    select(nav, {urlFor(QStringLiteral("b.txt"))});
     nav.step(1);
     QCOMPARE(nav.current(), urlFor(QStringLiteral("zfolder")));
     nav.step(-1);
@@ -110,7 +126,7 @@ void FileNavigatorTest::testMatchesSelection()
     FileNavigator nav;
     QVERIFY(!nav.matchesSelection({urlFor(QStringLiteral("b.txt"))}));
 
-    nav.setSelection({urlFor(QStringLiteral("b.txt"))});
+    select(nav, {urlFor(QStringLiteral("b.txt"))});
     QVERIFY(nav.matchesSelection({urlFor(QStringLiteral("b.txt"))}));
     nav.step(1);
     // After browsing away, pressing the key on the newly shown file closes it, not the original.
@@ -118,7 +134,7 @@ void FileNavigatorTest::testMatchesSelection()
     QVERIFY(nav.matchesSelection({urlFor(QStringLiteral("zfolder"))}));
 
     const QList<QUrl> multi = {urlFor(QStringLiteral("b.txt")), urlFor(QStringLiteral("A2.txt"))};
-    nav.setSelection(multi);
+    select(nav, multi);
     QVERIFY(nav.matchesSelection(multi));
 }
 
@@ -143,7 +159,7 @@ void FileNavigatorTest::testListingRefreshesWhenFolderChanges()
     first.close();
 
     FileNavigator nav;
-    nav.setSelection({QUrl::fromLocalFile(first.fileName())});
+    select(nav, {QUrl::fromLocalFile(first.fileName())});
     QCOMPARE(nav.count(), 1);
 
     QTest::qWait(1100); // folder modification times may only have one-second resolution
@@ -151,7 +167,7 @@ void FileNavigatorTest::testListingRefreshesWhenFolderChanges()
     QVERIFY(second.open(QIODevice::WriteOnly));
     second.close();
 
-    nav.setSelection({QUrl::fromLocalFile(first.fileName())});
+    select(nav, {QUrl::fromLocalFile(first.fileName())});
     QCOMPARE(nav.count(), 2);
 }
 

@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
 
 #include "comicbook.h"
+#include "forwarder.h"
 #include "kpeek-version.h"
 #include "pdfdocument.h"
 #include "peekcontroller.h"
@@ -19,6 +20,7 @@
 #include <QDeadlineTimer>
 #include <QDir>
 #include <QIcon>
+#include <QImageReader>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QQmlApplicationEngine>
@@ -27,6 +29,10 @@
 #include <QQuickWindow>
 
 #include <cstdlib>
+
+#ifdef __GLIBC__
+#include <malloc.h>
+#endif
 
 namespace
 {
@@ -70,9 +76,22 @@ QList<QUrl> urlsFromArguments(QCommandLineParser &parser, const QStringList &arg
 
 int main(int argc, char *argv[])
 {
+#ifdef __GLIBC__
+    // glibc gives threads their own heaps ("arenas"), up to 8 per core. Each video preview's decoder
+    // threads left frame-sized free memory in fresh arenas that malloc_trim() can't return: 270 MB
+    // stayed resident after three rounds of videos. Two arenas: 78 MB, at no measurable CPU cost.
+    mallopt(M_ARENA_MAX, 2);
+#endif
+    if (const auto status = forwardToRunningInstance(argc, argv, KPEEK_APP_ID)) {
+        return *status;
+    }
     // QApplication rather than QGuiApplication so Kirigami picks up the desktop style and platform theme.
     QApplication app(argc, argv); // sets the C locale from the environment
     ensureUtf8Locale();
+    if (isLowMemorySystem()) {
+        // An image over this fails cleanly (to the thumbnail) instead of pushing a 4 GB machine into swap.
+        QImageReader::setAllocationLimit(128);
+    }
     app.setQuitOnLastWindowClosed(false);
 
     KLocalizedString::setApplicationDomain("kpeek");

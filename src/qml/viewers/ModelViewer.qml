@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
 
 import QtQuick
+import QtQuick.Controls as QQC2
 import QtQuick3D
 import QtQuick3D.AssetUtils
 import QtQuick3D.Helpers
@@ -12,12 +13,16 @@ import io.github.iamandelib.kpeek
  * 3D models (glTF/GLB, OBJ, STL, 3MF) through Qt Quick 3D: drag to orbit, the wheel moves the camera
  * in and out, and the universal zoom (Ctrl+wheel, header buttons) scales the fitted distance.
  * Qt Quick 3D needs a GPU; with the software renderer the info card is shown instead.
+ * Importing runs on the GUI thread and needs many times the file size in memory (a 15 MB scan:
+ * 0.9 s and 560 MB; 50 MB: 3.4 s and 1.4 GB), so large models load only when asked to.
  */
 Rectangle {
     id: root
 
     property real zoom: 1.0
     readonly property Flickable scrollTarget: null
+    readonly property bool hardware: GraphicsInfo.api !== GraphicsInfo.Software
+    property bool loadRequested: PeekController.fileSize <= (PeekController.lowMemory ? 4 : 10) * 1024 * 1024
 
     color: Kirigami.Theme.backgroundColor
 
@@ -25,13 +30,23 @@ Rectangle {
     // is only instantiated on a hardware-accelerated renderer.
     Loader {
         anchors.fill: parent
-        active: GraphicsInfo.api === GraphicsInfo.Software
+        active: !root.hardware || !root.loadRequested
         source: "InfoViewer.qml"
+    }
+
+    QQC2.Button {
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: Kirigami.Units.gridUnit * 2
+        visible: root.hardware && !root.loadRequested
+        icon.name: "view-preview"
+        text: i18nc("@action:button", "Load 3D Model")
+        onClicked: root.loadRequested = true
     }
 
     Loader {
         anchors.fill: parent
-        active: GraphicsInfo.api !== GraphicsInfo.Software
+        active: root.hardware && root.loadRequested
         sourceComponent: Item {
             id: scene
 
@@ -69,7 +84,8 @@ Rectangle {
                     backgroundMode: SceneEnvironment.Color
                     clearColor: Kirigami.Theme.backgroundColor
                     antialiasingMode: SceneEnvironment.MSAA
-                    antialiasingQuality: SceneEnvironment.High
+                    // 4× MSAA costs ~90 MB of (often shared) video memory at 1080p; low-memory machines get 2×.
+                    antialiasingQuality: PeekController.lowMemory ? SceneEnvironment.Medium : SceneEnvironment.High
                 }
 
                 Node {
