@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: BSD-2-Clause
-# SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibsriz@proton.me>
+# SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
 
 # Logic without UI dependencies, shared with the autotests.
 add_library(kpeekcore STATIC

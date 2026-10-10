@@ -1,6 +1,6 @@
 #!/bin/sh
 # SPDX-License-Identifier: GPL-2.0-or-later
-# SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibsriz@proton.me>
+# SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
 #
 # Development only: installs the Peek service menu on the host so Dolphin runs the
 # kpeek built in the `dev` distrobox. Undo with: scripts/dev-install-servicemenu.sh --remove

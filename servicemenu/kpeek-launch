@@ -1,6 +1,6 @@
 #!/bin/sh
 # SPDX-License-Identifier: GPL-2.0-or-later
-# SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibsriz@proton.me>
+# SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
 #
 # Starts KPeek for the Dolphin service menu: an override from the config file
 # (used for development builds), then a native install, then the Flatpak.

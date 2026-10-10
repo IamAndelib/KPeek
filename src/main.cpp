@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-// SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibsriz@proton.me>
+// SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
 
 #include "kpeek-version.h"
 #include "pdfdocument.h"
@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
                      i18nc("@info", "Quick file previews for Dolphin"),
                      KAboutLicense::GPL_V2,
                      i18nc("@info:credit", "© 2026 Andelib Taref Srizon"));
-    about.addAuthor(i18nc("@info:credit", "Andelib Taref Srizon"), QString(), QStringLiteral("andelibsriz@proton.me"));
+    about.addAuthor(i18nc("@info:credit", "Andelib Taref Srizon"), QString(), QStringLiteral("andelibtarefsrizon@gmail.com"));
     about.setOrganizationDomain("iamandelib.github.io");
     about.setDesktopFileName(QStringLiteral(KPEEK_APP_ID));
     KAboutData::setApplicationData(about);
