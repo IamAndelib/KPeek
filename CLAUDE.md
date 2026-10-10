@@ -24,6 +24,14 @@ Read README.md first; it covers the features, the Dolphin integration (service m
 - Flatpak manifest (when written) needs: `--device=dri` (GPU and VA-API), the `codecs-extra` extension
   (H.264/HEVC), `--filesystem=host:ro` (sibling files), `--filesystem=xdg-cache/thumbnails:ro`,
   `--talk-name=org.freedesktop.Flatpak` (host LibreOffice). Don't bundle NVIDIA libraries.
+- Paged documents (PDF, office, comics) share `src/qml/PageView.qml`. A new paged format is a C++ QML type with
+  `pageCount`, `pageSize(i)`, `pageSource(i)` (an async image provider URL) and `failed`, like `ComicBook`.
+- Archives and comic books are read with libarchive (streamed headers, no in-memory tree); its one-thread
+  `archivePool()` keeps a slow listing from starving image decodes.
+- 3D models use Qt Quick 3D, which can't run on the software renderer: `ModelViewer.qml` never creates its scene
+  there. Headless tests of it need real GL: run under `Xvfb` with `QT_QPA_PLATFORM=xcb`, not `offscreen`.
+- Formats with no viewer (camera RAW, Blender…) fall back to Dolphin's thumbnail on the info card; don't add
+  decoders the Flatpak runtime lacks.
 - Background work goes on `workerPool()` (`src/workerpool.h`), never `QThreadPool::globalInstance()`.
 - Never set a KSyntaxHighlighting `SyntaxHighlighter.textEdit` to null: it crashes. Swap components instead.
 - Qt on Wayland reports wheel events (even from a real mouse) with a "touchpad"-typed device: any

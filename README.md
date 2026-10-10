@@ -12,15 +12,17 @@ and [Sushi](https://gitlab.gnome.org/GNOME/sushi) is to GNOME Files.
 
 | Type | Preview |
 |---|---|
-| Images (JPEG, PNG, WebP, AVIF, JXL, HEIC, RAW, SVG…) and GIF/WebP animations | Fitted to the window |
+| Images (JPEG, PNG, WebP, AVIF, JXL, HEIC, SVG…) and GIF/WebP animations | Fitted to the window |
 | PDF | Every page, with scrolling, a page counter and zoom |
 | Office documents (docx, odt, xlsx, ods, pptx, odp, doc, rtf…) | Rendered through LibreOffice, then cached |
 | Video and audio | Starts playing immediately; seek bar, mute, and title/artist for audio |
 | Source code and text | Syntax highlighting that follows your color scheme |
 | Markdown | Rendered, with a source toggle |
-| Archives (zip, tar.gz/xz/bz2/zst, 7z) | Contents tree with sizes |
+| Comic books (cbz, cbr, cb7, cbt) | Every page, like a PDF |
+| 3D models (glTF/GLB, OBJ, STL, 3MF) | Drag to orbit; needs GPU rendering |
+| Archives (zip, tar.*, 7z, rar, iso, deb, rpm, cab, cpio…) | Contents tree with sizes |
 | Fonts | Specimen at several sizes |
-| Folders and everything else | Icon, type, size and modification date |
+| Folders and everything else (camera RAW, Blender, …) | Dolphin's thumbnail when it has one, else the icon; type, size and modification date |
 
 ### Light on resources
 
@@ -68,7 +70,7 @@ Invoking it again on the file that's already showing closes the preview.
 ## Requirements
 
 - KDE Plasma 6 with Dolphin ≥ 26.04 (needed for the keyboard shortcut; the context menu entry works with older versions)
-- Qt ≥ 6.8, KDE Frameworks ≥ 6.10, Kirigami, Poppler (Qt 6), QtMultimedia, KSyntaxHighlighting, KArchive
+- Qt ≥ 6.8, KDE Frameworks ≥ 6.10, Kirigami, Poppler (Qt 6), libarchive, QtMultimedia, Qt Quick 3D, KSyntaxHighlighting
 - Optional: LibreOffice, from your distribution or Flathub, for office document previews
 
 ## Building
@@ -112,7 +114,7 @@ Please follow the [KDE Community Code of Conduct](https://kde.org/code-of-conduc
 
 ## Roadmap
 
-- [x] Image, PDF, office, media, text/code, Markdown, archive and font viewers
+- [x] Image, PDF, office, media, text/code, Markdown, archive, comic, 3D model and font viewers
 - [x] Universal zoom and grab-to-pan
 - [ ] Polish: window resizes to fit images, pin the window size, settings
 - [ ] Flatpak on Flathub
