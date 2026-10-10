@@ -21,6 +21,7 @@ private Q_SLOTS:
     void testStepWraps();
     void testMatchesSelection();
     void testCaseOnlyDifference();
+    void testListingRefreshesWhenFolderChanges();
 
 private:
     QUrl urlFor(const QString &name) const;
@@ -118,6 +119,27 @@ void FileNavigatorTest::testCaseOnlyDifference()
     }
     const QList<QUrl> siblings = FileNavigator::siblings(QUrl::fromLocalFile(dir.filePath(QStringLiteral("b.txt"))));
     QCOMPARE(siblings, (QList<QUrl>{QUrl::fromLocalFile(dir.filePath(QStringLiteral("B.txt"))), QUrl::fromLocalFile(dir.filePath(QStringLiteral("b.txt")))}));
+}
+
+void FileNavigatorTest::testListingRefreshesWhenFolderChanges()
+{
+    // The folder listing is cached between invocations, but a new file must show up.
+    QTemporaryDir dir;
+    QFile first(dir.filePath(QStringLiteral("a.txt")));
+    QVERIFY(first.open(QIODevice::WriteOnly));
+    first.close();
+
+    FileNavigator nav;
+    nav.setSelection({QUrl::fromLocalFile(first.fileName())});
+    QCOMPARE(nav.count(), 1);
+
+    QTest::qWait(1100); // folder modification times may only have one-second resolution
+    QFile second(dir.filePath(QStringLiteral("b.txt")));
+    QVERIFY(second.open(QIODevice::WriteOnly));
+    second.close();
+
+    nav.setSelection({QUrl::fromLocalFile(first.fileName())});
+    QCOMPARE(nav.count(), 2);
 }
 
 QTEST_GUILESS_MAIN(FileNavigatorTest)

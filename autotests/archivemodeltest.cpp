@@ -76,7 +76,7 @@ void ArchiveModelTest::testCancelled()
 {
     const QString zip = makeZip({QStringLiteral("a"), QStringLiteral("b")});
     const std::atomic_bool cancelled = true;
-    QVERIFY(ArchiveModel::list(zip, cancelled).entries.isEmpty());
+    QVERIFY(ArchiveModel::list(zip, &cancelled).entries.isEmpty());
 }
 
 void ArchiveModelTest::testNotAnArchive()

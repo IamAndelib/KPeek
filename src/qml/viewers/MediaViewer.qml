@@ -26,7 +26,9 @@ Rectangle {
         const resolution = player.metaData.value(MediaMetaData.Resolution);
         const codec = player.metaData.value(MediaMetaData.VideoCodec);
         const large = resolution !== undefined && resolution.width * resolution.height > 1920 * 1080;
-        return player.hasVideo && large && codec !== MediaFormat.VideoCodec.H264 && codec !== MediaFormat.VideoCodec.H265;
+        // H.264, HEVC and VP9 have been GPU-decoded on Intel, AMD and NVIDIA for years; AV1 only recently.
+        const gpuFriendly = [MediaFormat.VideoCodec.H264, MediaFormat.VideoCodec.H265, MediaFormat.VideoCodec.VP9];
+        return player.hasVideo && large && !gpuFriendly.includes(codec);
     }
 
     function formatTime(ms) {
@@ -167,9 +169,10 @@ Rectangle {
                 QQC2.ToolButton {
                     icon.name: player.playbackState === MediaPlayer.PlayingState ? "media-playback-pause" : "media-playback-start"
                     display: QQC2.AbstractButton.IconOnly
-                    text: player.playbackState === MediaPlayer.PlayingState ? i18nc("@action:button", "Pause (K)") : i18nc("@action:button", "Play (K)")
+                    text: player.playbackState === MediaPlayer.PlayingState ? i18nc("@action:button", "Pause") : i18nc("@action:button", "Play")
+                    focusPolicy: Qt.NoFocus
                     onClicked: root.togglePlayback()
-                    QQC2.ToolTip.text: text
+                    QQC2.ToolTip.text: i18nc("@info:tooltip", "%1 (K)", text)
                     QQC2.ToolTip.visible: hovered
                 }
                 QQC2.Label {
@@ -194,6 +197,7 @@ Rectangle {
                     icon.name: audio.muted ? "audio-volume-muted" : "audio-volume-high"
                     display: QQC2.AbstractButton.IconOnly
                     text: audio.muted ? i18nc("@action:button", "Unmute") : i18nc("@action:button", "Mute")
+                    focusPolicy: Qt.NoFocus
                     onClicked: audio.muted = !audio.muted
                     QQC2.ToolTip.text: text
                     QQC2.ToolTip.visible: hovered

@@ -17,3 +17,15 @@ inline QThreadPool *workerPool()
     static auto *pool = new QThreadPool; // intentionally leaked; see above
     return pool;
 }
+
+/// One thread for archive listings: opening a compressed tar decompresses it whole and can't be
+/// interrupted, so several queued ones must neither run at once nor starve PDF rendering.
+inline QThreadPool *archivePool()
+{
+    static auto *pool = [] {
+        auto *p = new QThreadPool; // intentionally leaked, like workerPool()
+        p->setMaxThreadCount(1);
+        return p;
+    }();
+    return pool;
+}

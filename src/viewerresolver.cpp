@@ -136,6 +136,7 @@ bool ViewerResolver::looksLikeText(const QByteArray &data)
     }
     QStringDecoder decoder(QStringDecoder::Utf8);
     // The sample may end in the middle of a multi-byte character; only judge complete input.
+    // decode() is lazy: the bytes are only decoded (and errors found) when converted to a QString.
     const QString decoded = decoder.decode(data);
     Q_UNUSED(decoded)
     return !decoder.hasError();

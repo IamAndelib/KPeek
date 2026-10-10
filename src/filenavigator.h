@@ -23,7 +23,6 @@ public:
     int currentIndex() const;
     int count() const;
     QUrl current() const;
-    bool isEmpty() const;
 
     /// Move by @p step, wrapping around at both ends.
     void step(int step);

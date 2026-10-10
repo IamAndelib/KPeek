@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
 
 #include "archivemodel.h"
+#include "naturalsort.h"
 #include "workerpool.h"
 
 #include <K7Zip>
@@ -37,11 +38,11 @@ std::unique_ptr<KArchive> archiveFor(const QString &path)
     return std::make_unique<KTar>(path);
 }
 
-void collect(const KArchiveDirectory *dir, const QString &prefix, ArchiveListing &listing, const std::atomic_bool &cancelled)
+void collect(const KArchiveDirectory *dir, const QString &prefix, ArchiveListing &listing, const std::atomic_bool *cancelled, const KFormat &format)
 {
     const QStringList names = dir->entries();
     for (const QString &name : names) {
-        if (cancelled) {
+        if (cancelled && *cancelled) {
             return;
         }
         if (listing.entries.size() >= ArchiveModel::MaxEntries) {
@@ -54,10 +55,10 @@ void collect(const KArchiveDirectory *dir, const QString &prefix, ArchiveListing
         item.isDir = entry->isDirectory();
         listing.entries.append(item);
         if (item.isDir) {
-            collect(static_cast<const KArchiveDirectory *>(entry), item.path + QLatin1Char('/'), listing, cancelled);
+            collect(static_cast<const KArchiveDirectory *>(entry), item.path + QLatin1Char('/'), listing, cancelled, format);
         } else {
             const qint64 size = static_cast<const KArchiveFile *>(entry)->size();
-            listing.entries.last().sizeText = KFormat().formatByteSize(size);
+            listing.entries.last().sizeText = format.formatByteSize(size);
             listing.totalSize += size;
             ++listing.fileCount;
         }
@@ -76,9 +77,7 @@ void sortListing(QList<ArchiveEntry> &entries)
         keys.append({entry.path.split(QLatin1Char('/')), entry.isDir});
     }
 
-    QCollator collator;
-    collator.setNumericMode(true);
-    collator.setCaseSensitivity(Qt::CaseInsensitive);
+    const QCollator collator = naturalCollator();
 
     // Segment by segment, folders before files; names that collate equal ("A" vs "a",
     // "file01" vs "file1") are tie-broken by their raw text so the order is strict.
@@ -135,7 +134,7 @@ ArchiveModel::~ArchiveModel()
     }
 }
 
-ArchiveListing ArchiveModel::list(const QString &path, const std::atomic_bool &cancelled)
+ArchiveListing ArchiveModel::list(const QString &path, const std::atomic_bool *cancelled)
 {
     ArchiveListing listing;
     std::unique_ptr<KArchive> archive = archiveFor(path);
@@ -143,8 +142,8 @@ ArchiveListing ArchiveModel::list(const QString &path, const std::atomic_bool &c
         listing.failed = true;
         return listing;
     }
-    collect(archive->directory(), QString(), listing, cancelled);
-    if (cancelled) {
+    collect(archive->directory(), QString(), listing, cancelled, KFormat());
+    if (cancelled && *cancelled) {
         return {};
     }
 
@@ -211,8 +210,8 @@ void ArchiveModel::setUrl(const QUrl &url)
     endResetModel();
     Q_EMIT statusChanged();
 
-    m_watcher.setFuture(QtConcurrent::run(workerPool(), [path = url.toLocalFile(), cancelled = m_cancelled] {
-        return list(path, *cancelled);
+    m_watcher.setFuture(QtConcurrent::run(archivePool(), [path = url.toLocalFile(), cancelled = m_cancelled] {
+        return list(path, cancelled.get());
     }));
 }
 

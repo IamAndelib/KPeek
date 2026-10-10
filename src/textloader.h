@@ -19,6 +19,7 @@ class TextLoader : public QObject
     Q_PROPERTY(bool failed READ failed NOTIFY loaded)
     /// False for text too big to syntax-highlight without stalling the UI.
     Q_PROPERTY(bool highlight READ highlight NOTIFY loaded)
+    Q_PROPERTY(qint64 maxBytes READ maxBytes CONSTANT)
 
 public:
     using QObject::QObject;
@@ -33,6 +34,7 @@ public:
     bool truncated() const;
     bool failed() const;
     bool highlight() const;
+    qint64 maxBytes() const;
 
     /// Decodes using a BOM if present, else UTF-8, falling back to Latin-1 for legacy 8-bit files.
     /// @p complete is false when @p data was cut off, so a character split at the end isn't an error.

@@ -66,14 +66,6 @@ Item {
         defaultLogLevel: LoggingCategory.Warning
     }
 
-    // Wayland only tells a window which modifier keys are held while it has keyboard focus.
-    Connections {
-        target: input.Window.window
-        function onActiveChanged() {
-            console.debug(log, "window active:", input.Window.window.active);
-        }
-    }
-
     WheelHandler {
         target: null
         // WheelHandler only takes mouse-type devices by default, but Qt on Wayland reports wheel

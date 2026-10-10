@@ -100,8 +100,11 @@ private:
             return OfficeConverter::sofficeCommand();
         }));
 
-        // Let a conversion in progress finish cleanly when the app quits, rather than orphaning LibreOffice.
+        // Let a conversion in progress finish cleanly when the app quits, rather than orphaning LibreOffice,
+        // and start no new one: waitForFinished() delivers finished(), which would otherwise call startNext().
         connect(qApp, &QCoreApplication::aboutToQuit, this, [this] {
+            m_quitting = true;
+            m_pending.clear();
             if (m_process) {
                 m_process->terminate();
                 m_process->waitForFinished(3000);
@@ -111,7 +114,7 @@ private:
 
     void startNext()
     {
-        if (!m_commandKnown || m_process || m_pending.isEmpty()) {
+        if (m_quitting || !m_commandKnown || m_process || m_pending.isEmpty()) {
             return;
         }
         const Job job = m_pending.takeFirst();
@@ -174,6 +177,7 @@ private:
     QProcess *m_process = nullptr;
     QStringList m_command;
     bool m_commandKnown = false;
+    bool m_quitting = false;
 };
 }
 
@@ -218,6 +222,16 @@ void OfficeConverter::pruneCache()
     }
 }
 
+OfficeConverter::OfficeConverter(QObject *parent)
+    : QObject(parent)
+{
+    connect(ConversionQueue::instance(), &ConversionQueue::finished, this, [this](const QString &pdfPath, Status status) {
+        if (m_status == Converting && pdfPath == m_pdfPath) {
+            setStatus(status);
+        }
+    });
+}
+
 OfficeConverter::~OfficeConverter()
 {
     if (m_status == Converting) {
@@ -240,6 +254,7 @@ void OfficeConverter::setSource(const QUrl &source)
 
     const QFileInfo info(source.toLocalFile());
     if (!info.isFile()) {
+        m_pdfPath.clear();
         setStatus(Failed);
         return;
     }
@@ -259,11 +274,6 @@ void OfficeConverter::setSource(const QUrl &source)
         setStatus(Unavailable);
         return;
     }
-    connect(queue, &ConversionQueue::finished, this, [this](const QString &pdfPath, Status status) {
-        if (pdfPath == m_pdfPath) {
-            setStatus(status);
-        }
-    });
     setStatus(Converting);
     queue->request(info.absoluteFilePath(), m_pdfPath);
 }

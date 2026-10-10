@@ -36,7 +36,7 @@ public:
     };
     Q_ENUM(Status)
 
-    using QObject::QObject;
+    explicit OfficeConverter(QObject *parent = nullptr);
     ~OfficeConverter() override;
 
     QUrl source() const;

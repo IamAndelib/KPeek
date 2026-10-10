@@ -53,6 +53,12 @@ public:
     /// Opens the document (shared with the page renderer) and reads its page sizes. Runs on the worker pool.
     static Layout readLayout(const QString &key);
 
+    /// Closes the cached documents (while the preview is hidden).
+    static void releaseCache();
+
+    /// The document-cache key for a "<mtime>/<percent-encoded path>" key, however much of it is already decoded.
+    static QString cacheKey(const QString &key);
+
 private:
     QUrl m_url;
     QString m_key; ///< "<mtime>/<percent-encoded path>", so an edited file never renders stale pages

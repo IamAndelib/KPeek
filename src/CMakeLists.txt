@@ -6,6 +6,8 @@ add_library(kpeekcore STATIC
     filenavigator.cpp filenavigator.h
     viewerresolver.cpp viewerresolver.h
     thumbnailcache.cpp thumbnailcache.h
+    naturalsort.h
+    systeminfo.h
 )
 target_include_directories(kpeekcore PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(kpeekcore PUBLIC Qt6::Core Qt6::Gui)

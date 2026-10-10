@@ -23,6 +23,7 @@ Rectangle {
 
     QQC2.ScrollView {
         id: scroll
+        contentWidth: availableWidth // samples elide; never scroll sideways
         anchors.fill: parent
         visible: loader.status === FontLoader.Ready
 

@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
 
 #include "pdfdocument.h"
+#include "systeminfo.h"
 #include "workerpool.h"
 
 #include <poppler-qt6.h>
@@ -22,24 +23,20 @@ namespace
 // Poppler documents aren't safe to use from several threads at once, so everything goes
 // through one lock; recently used documents stay open to make scrolling cheap.
 QMutex s_mutex;
-QCache<QString, Poppler::Document> s_documents(4);
+QCache<QString, Poppler::Document> s_documents(isLowMemorySystem() ? 2 : 4);
 
-// Upper bound for one rendered page (~256 MB as ARGB32), however far the user zooms in.
-constexpr double MaxPagePixels = 64e6;
-
-QString pathFromKey(const QString &key)
-{
-    // Everything after the first slash: Qt may hand the id over already percent-decoded.
-    return QUrl::fromPercentEncoding(key.section(QLatin1Char('/'), 1, -1).toUtf8());
-}
+// Upper bound for one rendered page, however far the user zooms in: ~256 MB as ARGB32 (~96 MB on
+// low-memory machines).
+const double MaxPagePixels = isLowMemorySystem() ? 24e6 : 64e6;
 
 /// The cached document for @p key. Call with s_mutex held. Sets @p locked for password-protected files.
 Poppler::Document *documentLocked(const QString &key, bool *locked = nullptr)
 {
-    if (auto *document = s_documents.object(key)) {
+    const QString cacheKey = PdfDocument::cacheKey(key);
+    if (auto *document = s_documents.object(cacheKey)) {
         return document;
     }
-    std::unique_ptr<Poppler::Document> document = Poppler::Document::load(pathFromKey(key));
+    std::unique_ptr<Poppler::Document> document = Poppler::Document::load(cacheKey.section(QLatin1Char('/'), 1));
     if (!document) {
         return nullptr;
     }
@@ -53,7 +50,7 @@ Poppler::Document *documentLocked(const QString &key, bool *locked = nullptr)
     document->setRenderHint(Poppler::Document::TextAntialiasing);
     document->setRenderHint(Poppler::Document::TextHinting);
     auto *raw = document.release();
-    s_documents.insert(key, raw);
+    s_documents.insert(cacheKey, raw);
     return raw;
 }
 
@@ -140,6 +137,20 @@ PdfDocument::Layout PdfDocument::readLayout(const QString &key)
         layout.pageSizes.append(page ? page->pageSizeF() : QSizeF(595, 842));
     }
     return layout;
+}
+
+void PdfDocument::releaseCache()
+{
+    QMutexLocker locker(&s_mutex);
+    s_documents.clear();
+}
+
+QString PdfDocument::cacheKey(const QString &key)
+{
+    // key is "<mtime>/<path>". Qt hands image providers the id partly percent-decoded (spaces and
+    // non-ASCII decoded, "%2F" kept), so normalise to the fully decoded path: otherwise the page
+    // renderer and readLayout() would each open their own copy of the document.
+    return key.section(QLatin1Char('/'), 0, 0) + QLatin1Char('/') + QUrl::fromPercentEncoding(key.section(QLatin1Char('/'), 1).toUtf8());
 }
 
 QUrl PdfDocument::url() const

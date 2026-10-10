@@ -14,6 +14,7 @@
 
 #include <QApplication>
 #include <QCommandLineParser>
+#include <QDeadlineTimer>
 #include <QDir>
 #include <QQmlApplicationEngine>
 #include <QQuickStyle>
@@ -95,7 +96,9 @@ int main(int argc, char *argv[])
     // Don't let quitting hang on background work that can't be interrupted (e.g. decompressing
     // a huge tarball): that would keep the D-Bus name, so new previews would go to a dying process.
     workerPool()->clear();
-    if (!workerPool()->waitForDone(2000)) {
+    archivePool()->clear();
+    QDeadlineTimer deadline(2000);
+    if (!workerPool()->waitForDone(deadline) || !archivePool()->waitForDone(deadline)) {
         std::quick_exit(exitCode);
     }
     return exitCode;

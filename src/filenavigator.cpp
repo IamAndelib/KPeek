@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
 
 #include "filenavigator.h"
+#include "naturalsort.h"
 
 #include <QCollator>
 #include <QDir>
@@ -56,11 +57,6 @@ QUrl FileNavigator::current() const
     return m_index >= 0 ? m_items.at(m_index) : QUrl();
 }
 
-bool FileNavigator::isEmpty() const
-{
-    return m_items.isEmpty();
-}
-
 void FileNavigator::step(int step)
 {
     if (m_items.isEmpty()) {
@@ -105,9 +101,7 @@ QList<QUrl> FileNavigator::siblings(const QUrl &url)
     // NoSort: we sort ourselves below; QDir's own name sort would just be thrown away.
     const QFileInfoList entries = dir.entryInfoList(QDir::AllEntries | QDir::NoDotAndDotDot | QDir::System, QDir::NoSort);
 
-    QCollator collator;
-    collator.setNumericMode(true);
-    collator.setCaseSensitivity(Qt::CaseInsensitive);
+    const QCollator collator = naturalCollator();
 
     // Collation keys are computed once per file; comparing them is cheap even for 100k files.
     struct Item {

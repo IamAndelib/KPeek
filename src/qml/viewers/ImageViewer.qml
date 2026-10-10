@@ -36,10 +36,15 @@ Rectangle {
 
     // A decode size for an image of pixelSize to fit within `box`, or undefined (decode as is) when it
     // already fits: Image.sourceSize also scales *up* to the box, which would waste memory and sharpness.
+    // Uses the size from the file header, never the decoded size: that would make the decode size
+    // depend on its own result. Unknown sizes get the box.
     function decodeSize(box) {
-        const fits = pixelSize.width > 0 && pixelSize.width <= box.width && pixelSize.height <= box.height;
+        const size = PeekController.imageSize;
+        const fits = size.width > 0 && size.width <= box.width && size.height <= box.height;
         return fits ? undefined : box;
     }
+
+    readonly property int detailCap: PeekController.lowMemory ? 4096 : 8192
 
     readonly property bool baseReady: base.item?.status === Image.Ready
     // Set (for good) the first time the image is shown larger than the base decode resolves.
@@ -50,6 +55,9 @@ Rectangle {
     // images zoom on the base alone.
     readonly property bool detailDecodable: pixelSize.width * pixelSize.height <= 256e6
     onBaseTooSmallChanged: if (baseTooSmall && detailDecodable) wantsDetail = true
+    // Exactly one of base and detail is drawn: detail once loaded and while zoomed past the base,
+    // the base otherwise (also when zooming back out, so no mipmaps are needed for clean downscaling).
+    readonly property bool detailShown: detail.item?.status === Image.Ready && baseTooSmall
 
     // Keep the image point under the view's centre in place while zooming. The new position is
     // computed from the zoom formula and set in this same handler: deferring it (or reading bindings
@@ -72,9 +80,7 @@ Rectangle {
         flick.contentY = Math.max(0, Math.min(fy * after.height + (contentHeight - after.height) / 2 - flick.height / 2, contentHeight - flick.height));
     }
 
-
     color: Kirigami.Theme.backgroundColor
-
 
     Flickable {
         id: flick
@@ -95,7 +101,7 @@ Rectangle {
 
             Image {
                 anchors.fill: parent
-                visible: !root.baseReady
+                visible: !root.baseReady && base.item?.status !== Image.Error
                 source: PeekController.thumbnail
                 fillMode: Image.PreserveAspectFit
                 asynchronous: true
@@ -105,22 +111,24 @@ Rectangle {
             Loader {
                 id: base
                 anchors.fill: parent
+                visible: !root.detailShown
                 sourceComponent: PeekController.animated ? animatedComponent : staticComponent
             }
 
             Loader {
+                id: detail
                 anchors.fill: parent
                 active: root.wantsDetail
                 sourceComponent: Image {
-                    visible: status === Image.Ready // the base stays visible underneath until then
+                    visible: root.detailShown
                     source: PeekController.url
                     fillMode: Image.PreserveAspectFit
                     asynchronous: true
                     autoTransform: true
                     smooth: true
-                    mipmap: true // clean downscaling when zoomed back out
-                    // At most 8192 px a side: within every GPU's texture limit and ~45 MP of memory.
-                    sourceSize: root.decodeSize(Qt.size(8192, 8192))
+                    // At most 8192 px a side (~45 MP), 4096 on low-memory machines. Qt Quick shrinks a texture
+                    // that exceeds the GPU's own limit by itself, so this is about memory, not correctness.
+                    sourceSize: root.decodeSize(Qt.size(root.detailCap, root.detailCap))
                 }
             }
         }
@@ -138,7 +146,8 @@ Rectangle {
             autoTransform: true
             smooth: true
             // Decoded once, at most at screen size: never the full resolution of huge photos.
-            sourceSize: root.decodeSize(Qt.size(Screen.width * Screen.devicePixelRatio, Screen.height * Screen.devicePixelRatio))
+            sourceSize: root.decodeSize(Qt.size(Math.min(Screen.width * Screen.devicePixelRatio, root.detailCap),
+                                                Math.min(Screen.height * Screen.devicePixelRatio, root.detailCap)))
         }
     }
 

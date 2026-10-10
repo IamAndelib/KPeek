@@ -70,7 +70,7 @@ public:
 
     /// Reads the archive at @p path, stopping early once @p cancelled is set.
     /// Entries are sorted by path with folders before files, each folder directly above its contents.
-    static ArchiveListing list(const QString &path, const std::atomic_bool &cancelled = std::atomic_bool(false));
+    static ArchiveListing list(const QString &path, const std::atomic_bool *cancelled = nullptr);
 
 Q_SIGNALS:
     void urlChanged();

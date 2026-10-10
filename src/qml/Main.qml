@@ -11,8 +11,9 @@ QQC2.ApplicationWindow {
     id: root
 
     title: PeekController.fileName
-    width: Kirigami.Units.gridUnit * 48
-    height: Kirigami.Units.gridUnit * 32
+    // Fits small screens (e.g. 1366×768 at 125%) with room to spare.
+    width: Math.min(Kirigami.Units.gridUnit * 48, Screen.desktopAvailableWidth * 0.85)
+    height: Math.min(Kirigami.Units.gridUnit * 32, Screen.desktopAvailableHeight * 0.85)
     minimumWidth: Kirigami.Units.gridUnit * 20
     minimumHeight: Kirigami.Units.gridUnit * 12
     visible: false
@@ -78,22 +79,22 @@ QQC2.ApplicationWindow {
                 QQC2.ToolButton {
                     icon.name: "edit-reset"
                     display: QQC2.AbstractButton.IconOnly
-                    text: i18nc("@action:button", "Reset Zoom (Ctrl+0)")
+                    text: i18nc("@action:button", "Reset Zoom")
                     visible: Math.abs(input.zoom - 1) > 0.001
                     focusPolicy: Qt.NoFocus
                     onClicked: input.zoom = 1
-                    QQC2.ToolTip.text: text
+                    QQC2.ToolTip.text: i18nc("@info:tooltip", "Reset zoom (Ctrl+0)")
                     QQC2.ToolTip.visible: hovered
                 }
 
                 QQC2.ToolButton {
                     icon.name: "zoom-out"
                     display: QQC2.AbstractButton.IconOnly
-                    text: i18nc("@action:button", "Zoom Out (Ctrl+−)")
+                    text: i18nc("@action:button", "Zoom Out")
                     enabled: input.zoom > input.minZoom
                     focusPolicy: Qt.NoFocus
                     onClicked: input.zoomBy(-1)
-                    QQC2.ToolTip.text: text
+                    QQC2.ToolTip.text: i18nc("@info:tooltip", "Zoom out (Ctrl+−)")
                     QQC2.ToolTip.visible: hovered
                 }
                 QQC2.Label {
@@ -107,17 +108,17 @@ QQC2.ApplicationWindow {
                     TextMetrics {
                         id: zoomLabelMetrics
                         font: zoomLabel.font
-                        text: i18nc("@info zoom level", "%1%", 400)
+                        text: i18nc("@info zoom level", "%1%", input.maxZoom * 100)
                     }
                 }
                 QQC2.ToolButton {
                     icon.name: "zoom-in"
                     display: QQC2.AbstractButton.IconOnly
-                    text: i18nc("@action:button", "Zoom In (Ctrl++)")
+                    text: i18nc("@action:button", "Zoom In")
                     enabled: input.zoom < input.maxZoom
                     focusPolicy: Qt.NoFocus
                     onClicked: input.zoomBy(1)
-                    QQC2.ToolTip.text: text
+                    QQC2.ToolTip.text: i18nc("@info:tooltip", "Zoom in (Ctrl++)")
                     QQC2.ToolTip.visible: hovered
                 }
             }
@@ -137,8 +138,9 @@ QQC2.ApplicationWindow {
     Connections {
         target: PeekController
         function onCurrentChanged() {
-            input.zoom = 1;
+            // Unload first: resetting the zoom while the old viewer exists would make it re-layout for nothing.
             viewerLoader.source = "";
+            input.zoom = 1;
             viewerLoader.source = Qt.resolvedUrl("viewers/%1Viewer.qml".arg(PeekController.viewer));
         }
     }
@@ -148,7 +150,7 @@ QQC2.ApplicationWindow {
         anchors.fill: parent
         focus: true
         // Unloaded while hidden so closing the preview stops video and audio playback.
-        active: root.visible
+        active: PeekController.showing
         onLoaded: {
             if ("zoom" in item) {
                 item.zoom = Qt.binding(() => input.zoom);

@@ -13,6 +13,8 @@ Rectangle {
 
     property real zoom: 1.0
     property bool showSource: false
+    // Rendering megabytes of Markdown would stall the window; such files are shown as source.
+    readonly property bool sourceShown: showSource || !loader.highlight
     readonly property Flickable scrollTarget: scroll.contentItem as Flickable
 
     color: Kirigami.Theme.backgroundColor
@@ -31,20 +33,21 @@ Rectangle {
             Layout.margins: Kirigami.Units.smallSpacing
             visible: loader.truncated
             type: Kirigami.MessageType.Information
-            text: i18nc("@info", "This file is large; only the first 2 MiB are shown.")
+            text: i18nc("@info %1 is a size such as 2 MiB", "This file is large; only the first %1 are shown.", Qt.locale().formattedDataSize(loader.maxBytes))
         }
 
         QQC2.ScrollView {
             id: scroll
             Layout.fillWidth: true
             Layout.fillHeight: true
+            contentWidth: availableWidth // text wraps; never scroll sideways
 
             // Two separate components rather than one TextArea with a toggled highlighter,
             // which crashes KSyntaxHighlighting (see SourceText.qml).
             Loader {
                 width: scroll.availableWidth
                 height: item?.implicitHeight ?? 0
-                sourceComponent: root.showSource ? sourceView : renderedView
+                sourceComponent: root.sourceShown ? sourceView : renderedView
             }
         }
     }
@@ -73,6 +76,7 @@ Rectangle {
             text: loader.text
             fileName: PeekController.fileName
             highlight: loader.highlight
+            wrap: true
             zoom: root.zoom
         }
     }
@@ -84,7 +88,8 @@ Rectangle {
         // Keep clear of the vertical scrollbar.
         anchors.rightMargin: Kirigami.Units.largeSpacing + (scroll.QQC2.ScrollBar.vertical?.width ?? 0)
         checkable: true
-        checked: root.showSource
+        checked: root.sourceShown
+        enabled: loader.highlight
         focusPolicy: Qt.NoFocus
         icon.name: "format-text-code"
         text: i18nc("@action:button", "Show Source")

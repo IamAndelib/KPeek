@@ -3,7 +3,6 @@
 
 import QtQuick
 import QtQuick.Controls as QQC2
-import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import io.github.iamandelib.kpeek
 
@@ -16,25 +15,27 @@ Rectangle {
     readonly property Flickable scrollTarget: view
     readonly property bool dragPans: true
     readonly property real fitWidth: Math.max(Kirigami.Units.gridUnit * 10, view.width - Kirigami.Units.largeSpacing * 2)
-    // Set by layoutPages() (not a binding) so that size and scroll position change in a known order.
-    property real pageWidth: fitWidth
+    // Only ever set by layoutPages(), so that size and scroll position change in a known order.
+    property real pageWidth: 0
     // Render width in device pixels: rounded up to 256 px steps so resizing the window
     // doesn't re-render every page, and capped to bound memory when zoomed in.
     readonly property int renderWidth: Math.min(4096, Math.ceil(pageWidth * Screen.devicePixelRatio / 256) * 256)
 
-    // Keep the point under the view's centre in place while zooming. Everything happens here, in order:
-    // deferring the scroll position lets one frame show the new size at the old position (flicker), and
-    // setting it before the content has grown gets it clamped. Horizontally the page is centred in the
-    // content; vertically, pages scale but the gaps between them don't, so the anchor is "page k,
-    // fraction t down that page".
-    property real lastZoom: 1.0
+    // Keep the point under the view's centre in place when pages change size (zooming or resizing the
+    // window). Everything happens here, in order: deferring the scroll position lets one frame show the
+    // new size at the old position (flicker), and setting it before the content has grown gets it
+    // clamped. Horizontally the page is centred in the content; vertically, pages scale but the gaps
+    // between them don't, so the anchor is "page k, fraction t down that page".
     onZoomChanged: layoutPages()
     onFitWidthChanged: layoutPages()
+    Component.onCompleted: layoutPages()
 
     function layoutPages() {
-        const ratio = zoom / lastZoom;
-        lastZoom = zoom;
         const pageBefore = pageWidth;
+        if (pageBefore <= 0) {
+            pageWidth = fitWidth * zoom; // first layout: nothing to keep in place yet
+            return;
+        }
         const margin = Kirigami.Units.largeSpacing * 2;
         const contentBefore = Math.max(view.width, pageBefore + margin);
         const fx = (view.contentX + view.width / 2 - (contentBefore - pageBefore) / 2) / pageBefore;
@@ -42,17 +43,20 @@ Rectangle {
         const index = view.indexAt(view.contentX + view.width / 2, centreY);
         const item = index >= 0 ? view.itemAtIndex(index) : null;
         const t = item ? (centreY - item.y) / item.height : 0;
-        const itemY = item ? item.y : 0;
 
         pageWidth = fitWidth * zoom; // resizes pages and content width right away
+        // ListView repositions pages around the visible ones when their heights change, so lay out now
+        // and read where the anchor page actually is, rather than predicting it.
+        view.forceLayout();
 
         const contentAfter = Math.max(view.width, pageWidth + margin);
         view.contentX = Math.max(0, Math.min(fx * pageWidth + (contentAfter - pageWidth) / 2 - view.width / 2, contentAfter - view.width));
-        if (item && ratio !== 1) {
-            const yAfter = (itemY - index * view.spacing) * ratio + index * view.spacing;
-            view.contentY = yAfter + t * item.height - view.height / 2;
+        if (item) {
+            view.contentY = item.y + t * item.height - view.height / 2;
         }
     }
+
+    readonly property color borderColor: Kirigami.ColorUtils.linearInterpolation(Kirigami.Theme.backgroundColor, Kirigami.Theme.textColor, 0.2)
 
     color: Kirigami.Theme.alternateBackgroundColor
 
@@ -90,7 +94,7 @@ Rectangle {
                 width: root.pageWidth
                 height: parent.height
                 color: "white"
-                border.color: Kirigami.ColorUtils.linearInterpolation(Kirigami.Theme.backgroundColor, Kirigami.Theme.textColor, 0.2)
+                border.color: root.borderColor
 
                 Image {
                     anchors.fill: parent
@@ -110,25 +114,21 @@ Rectangle {
         anchors.bottom: parent.bottom
         anchors.bottomMargin: Kirigami.Units.largeSpacing
         visible: document.pageCount > 0
-        width: controls.implicitWidth + Kirigami.Units.smallSpacing * 2
-        height: controls.implicitHeight + Kirigami.Units.smallSpacing * 2
+        width: pageLabel.implicitWidth
+        height: pageLabel.implicitHeight
         radius: Kirigami.Units.cornerRadius
         color: Qt.alpha(Kirigami.Theme.backgroundColor, 0.92)
-        border.color: Kirigami.ColorUtils.linearInterpolation(Kirigami.Theme.backgroundColor, Kirigami.Theme.textColor, 0.2)
+        border.color: root.borderColor
 
-        RowLayout {
-            id: controls
+        QQC2.Label {
+            id: pageLabel
+            property int current: 0
+            // indexAt() is -1 in the gap between pages; keep the last page then.
+            readonly property int probe: view.indexAt(view.contentX + view.width / 2, view.contentY + view.height / 2)
+            onProbeChanged: if (probe >= 0) current = probe
             anchors.centerIn: parent
-            spacing: Kirigami.Units.smallSpacing
-
-            QQC2.Label {
-                property int current: 0
-                // indexAt() is -1 in the gap between pages; keep the last page then.
-                readonly property int probe: view.indexAt(view.contentX + view.width / 2, view.contentY + view.height / 2)
-                onProbeChanged: if (probe >= 0) current = probe
-                text: i18nc("@info page position", "Page %1 of %2", current + 1, document.pageCount)
-                Layout.margins: Kirigami.Units.smallSpacing
-            }
+            padding: Kirigami.Units.smallSpacing * 2
+            text: i18nc("@info page position", "Page %1 of %2", current + 1, document.pageCount)
         }
     }
 

@@ -41,6 +41,11 @@ bool TextLoader::failed() const
     return m_failed;
 }
 
+qint64 TextLoader::maxBytes() const
+{
+    return MaxBytes;
+}
+
 bool TextLoader::highlight() const
 {
     return m_text.size() <= MaxHighlightChars;

@@ -12,13 +12,15 @@ QQC2.TextArea {
 
     required property string fileName
     property bool highlight: true
+    // Wrapping a huge (often minified) file means laying out all of it again on every resize, so
+    // by default only text small enough to highlight is wrapped.
+    property bool wrap: highlight
     property real zoom: 1.0
 
     textFormat: TextEdit.PlainText
     readOnly: true
     selectByMouse: true
-    // Wrapping a huge (often minified) file means laying out all of it again on every resize.
-    wrapMode: text.length > 512 * 1024 ? TextEdit.NoWrap : TextEdit.Wrap
+    wrapMode: wrap ? TextEdit.Wrap : TextEdit.NoWrap
     font.family: Kirigami.Theme.fixedWidthFont.family
     font.pointSize: Kirigami.Theme.fixedWidthFont.pointSize * zoom
     background: null

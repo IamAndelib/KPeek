@@ -2,6 +2,8 @@
 // SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
 
 #include "peekcontroller.h"
+#include "pdfdocument.h"
+#include "systeminfo.h"
 #include "thumbnailcache.h"
 #include "viewerresolver.h"
 
@@ -17,6 +19,10 @@
 #include <QImageReader>
 #include <QMimeDatabase>
 #include <QQuickWindow>
+
+#ifdef __GLIBC__
+#include <malloc.h>
+#endif
 
 using namespace std::chrono_literals;
 
@@ -39,11 +45,6 @@ PeekController::PeekController(QObject *parent)
     connect(&m_idleQuitTimer, &QTimer::timeout, qApp, &QCoreApplication::quit);
 }
 
-PeekController *PeekController::instance()
-{
-    return s_instance;
-}
-
 PeekController *PeekController::create(QQmlEngine *, QJSEngine *)
 {
     QQmlEngine::setObjectOwnership(s_instance, QQmlEngine::CppOwnership);
@@ -61,7 +62,7 @@ void PeekController::showFiles(const QList<QUrl> &urls, bool toggle)
         return;
     }
 
-    if (toggle && m_window && m_window->isVisible() && m_navigator.matchesSelection(urls)) {
+    if (toggle && m_showing && m_navigator.matchesSelection(urls)) {
         close();
         return;
     }
@@ -85,10 +86,33 @@ void PeekController::previous()
 
 void PeekController::close()
 {
-    if (m_window) {
-        m_window->hide();
+    if (!m_showing) {
+        return;
     }
+    m_showing = false;
+    Q_EMIT showingChanged(); // unloads the viewer
     m_idleQuitTimer.start();
+
+    // Hide only after one frame without the viewer has been drawn: the scene graph frees the
+    // textures of destroyed items while rendering, which a hidden window never does. Then hand the
+    // rest back too, since the process stays resident: scene-graph caches, open PDF documents and
+    // freed heap. The timer is a fallback in case no frame gets rendered (e.g. the window is covered).
+    auto hideAndRelease = [this] {
+        if (!m_window || m_showing || !m_window->isVisible()) {
+            return;
+        }
+        m_window->hide();
+        m_window->releaseResources();
+        PdfDocument::releaseCache();
+#ifdef __GLIBC__
+        malloc_trim(0);
+#endif
+    };
+    if (m_window) {
+        connect(m_window, &QQuickWindow::frameSwapped, this, hideAndRelease, Qt::SingleShotConnection);
+        m_window->update();
+        QTimer::singleShot(250, this, hideAndRelease);
+    }
 }
 
 void PeekController::openExternally()
@@ -107,6 +131,10 @@ void PeekController::raiseWindow()
     }
     // KDBusService puts the invoking launcher's activation token in the environment,
     // which lets Wayland compositors give the already-running window focus.
+    if (!m_showing) {
+        m_showing = true;
+        Q_EMIT showingChanged();
+    }
     KWindowSystem::updateStartupId(m_window);
     m_window->show();
     m_window->raise();
@@ -121,7 +149,6 @@ void PeekController::updateCurrent()
 
     // Remote and virtual URLs (smb:, trash:, http:) only get the info card: viewers read local files.
     m_viewer = current.isLocalFile() ? ViewerResolver::viewerForFile(info, mime) : QStringLiteral("Info");
-    m_mimeType = mime.name();
     m_mimeComment = mime.comment();
     m_iconName = mime.iconName();
     m_isFolder = info.isDir();
@@ -147,7 +174,7 @@ void PeekController::updateCurrent()
         }
         m_sizeText = i18ncp("@info folder contents", "%1 item", "%1 items", entries);
     } else {
-        m_sizeText = KFormat().formatByteSize(info.size());
+        m_sizeText = current.isLocalFile() ? KFormat().formatByteSize(info.size()) : QString();
     }
 
     Q_EMIT currentChanged();
@@ -166,11 +193,6 @@ QString PeekController::fileName() const
 QString PeekController::viewer() const
 {
     return m_viewer;
-}
-
-QString PeekController::mimeType() const
-{
-    return m_mimeType;
 }
 
 QString PeekController::mimeComment() const
@@ -208,6 +230,11 @@ int PeekController::count() const
     return m_navigator.count();
 }
 
+bool PeekController::showing() const
+{
+    return m_showing;
+}
+
 QSize PeekController::imageSize() const
 {
     return m_imageSize;
@@ -216,6 +243,11 @@ QSize PeekController::imageSize() const
 bool PeekController::animated() const
 {
     return m_animated;
+}
+
+bool PeekController::lowMemory() const
+{
+    return isLowMemorySystem();
 }
 
 QUrl PeekController::thumbnail() const

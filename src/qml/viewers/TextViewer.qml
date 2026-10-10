@@ -30,7 +30,7 @@ Rectangle {
             Layout.margins: Kirigami.Units.smallSpacing
             visible: loader.truncated
             type: Kirigami.MessageType.Information
-            text: i18nc("@info", "This file is large; only the first 2 MiB are shown.")
+            text: i18nc("@info %1 is a size such as 2 MiB", "This file is large; only the first %1 are shown.", Qt.locale().formattedDataSize(loader.maxBytes))
         }
 
         QQC2.ScrollView {
