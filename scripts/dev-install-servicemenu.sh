@@ -2,25 +2,34 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 # SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
 #
-# Development only: installs the Peek service menu on the host so Dolphin runs the
-# kpeek built in the `dev` distrobox. Undo with: scripts/dev-install-servicemenu.sh --remove
+# Development only: adds the "Peek" service menu to the host's Dolphin, running the kpeek
+# built in the `dev` distrobox. Undo with: scripts/dev-install-servicemenu.sh --remove
 
-set -e
+set -eu
+
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
-DATA="${XDG_DATA_HOME:-$HOME/.local/share}"
-MENU="$DATA/kio/servicemenus/kpeek.desktop"
-LAUNCH="$HOME/.local/bin/kpeek-launch"
-CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/kpeek-launch.conf"
+MENU="${XDG_DATA_HOME:-$HOME/.local/share}/kio/servicemenus/kpeek.desktop"
 
-if [ "$1" = "--remove" ]; then
-    rm -f "$MENU" "$LAUNCH" "$CONFIG"
-    echo "Removed the development service menu."
+if [ "${1:-}" = "--remove" ]; then
+    rm -f "$MENU"
+    echo "Removed $MENU"
     exit 0
 fi
 
-mkdir -p "$(dirname "$MENU")" "$(dirname "$LAUNCH")"
-install -m 755 "$ROOT/servicemenu/kpeek-launch" "$LAUNCH"
-sed "s|@KPEEK_LAUNCH@|$LAUNCH|" "$ROOT/servicemenu/kpeek.desktop.in" > "$MENU"
-chmod +x "$MENU" # Dolphin ignores service menus outside system dirs unless they are executable
-echo "KPEEK_COMMAND=\"distrobox enter dev -- $ROOT/build/bin/kpeek\"" > "$CONFIG"
-echo "Installed $MENU (runs $ROOT/build/bin/kpeek in the dev container)."
+case $ROOT in
+*[\"\`\$\\]*)
+    echo "The checkout path contains characters a .desktop Exec line can't quote: $ROOT" >&2
+    exit 1
+    ;;
+esac
+
+mkdir -p "$(dirname "$MENU")"
+while IFS= read -r line; do
+    case $line in
+    Exec=*) printf 'Exec=distrobox enter dev -- "%s/build/bin/kpeek" %%F\n' "$ROOT" ;;
+    *) printf '%s\n' "$line" ;;
+    esac
+done <"$ROOT/servicemenu/kpeek.desktop" >"$MENU"
+chmod +x "$MENU" # Dolphin ignores user service menus that aren't executable
+
+echo "Installed $MENU (runs $ROOT/build/bin/kpeek in the dev container). Restart Dolphin to pick it up."

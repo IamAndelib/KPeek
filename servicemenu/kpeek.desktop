@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: CC0-1.0
+# SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
+#
+# Dolphin service menu: adds "Peek" to the context menu of every file and folder.
+# Dolphin 26.04 and later let users bind a shortcut to it (KPeek suggests Meta+Space).
+# The Exec line suits a native install; the Flatpak installer and the development
+# script rewrite it.
+[Desktop Entry]
+Type=Service
+MimeType=all/all;
+Actions=peek;
+
+[Desktop Action peek]
+Name=Peek
+Comment=Quickly preview the selected files
+Icon=io.github.iamandelib.kpeek
+Exec=kpeek %F

@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: CC0-1.0
+# SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
+version = 1
+
+[[annotations]]
+path = ["README.md", "CLAUDE.md", ".gitignore", ".github/**"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>"
+SPDX-License-Identifier = "CC0-1.0"
