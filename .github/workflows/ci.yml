@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # Same distribution as the recommended development container.
+    container: registry.fedoraproject.org/fedora:44
+    steps:
+      - name: Install dependencies
+        run: >
+          dnf install -y --setopt=install_weak_deps=False
+          git gcc-c++ cmake ninja-build extra-cmake-modules clang-tools-extra git-clang-format
+          qt6-qtbase-devel qt6-qtdeclarative-devel qt6-qtmultimedia-devel qt6-qtsvg-devel
+          kf6-kcoreaddons-devel kf6-ki18n-devel kf6-kcrash-devel kf6-kdbusaddons-devel
+          kf6-kwindowsystem-devel kf6-karchive-devel kf6-kirigami-devel kf6-syntax-highlighting-devel
+          poppler-qt6-devel appstream desktop-file-utils shellcheck reuse
+
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=/tmp/prefix
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Install
+        run: cmake --install build
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Check formatting
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          cmake --build build --target clang-format
+          git diff --exit-code
+
+      - name: Validate metadata and scripts
+        run: |
+          desktop-file-validate src/io.github.iamandelib.kpeek.desktop
+          appstreamcli validate --no-net src/io.github.iamandelib.kpeek.metainfo.xml
+          shellcheck scripts/*.sh
+          reuse lint
