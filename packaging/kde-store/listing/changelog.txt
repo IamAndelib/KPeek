@@ -1,3 +1,6 @@
+1.0.3
+- Resizing from the top edge and top corners now works on Wayland too.
+
 1.0.2
 - The window can be resized from its top edge and top corners too.
 

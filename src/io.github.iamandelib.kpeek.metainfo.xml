@@ -73,6 +73,11 @@ SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
     <control>pointing</control>
   </supports>
   <releases>
+    <release version="1.0.3" date="2026-10-11">
+      <description>
+        <p>Resizing from the top edge and top corners now works on Wayland too.</p>
+      </description>
+    </release>
     <release version="1.0.2" date="2026-10-11">
       <description>
         <p>The window can be resized from its top edge and top corners too.</p>

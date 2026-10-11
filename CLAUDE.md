@@ -43,7 +43,8 @@ Read README.md first; it covers the features, the Dolphin integration (service m
   strand hundreds of MB during a session). Large 3D models load only on request. Measure before/after with
   `/proc/<pid>/smaps_rollup` (Private_Dirty), not RSS.
 - The window is frameless: the header bar moves it (a `DragHandler` calling `startSystemMove()`; buttons keep their
-  clicks), edge strips on `Overlay.overlay` resize it, and `KWindowShadow` asks the compositor for a shadow.
+  clicks), edge strips on the window's root item (`root.header.parent`, stacked above the header; anywhere lower the header
+  swallows the pointer at the top edge) resize it, and `KWindowShadow` asks the compositor for a shadow.
 - Background work goes on `workerPool()` (`src/workerpool.h`), libarchive scans on `archivePool()`; never
   `QThreadPool::globalInstance()`.
 - Never set a KSyntaxHighlighting `SyntaxHighlighter.textEdit` to null: it crashes. Swap components instead.
