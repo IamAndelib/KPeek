@@ -76,4 +76,6 @@ target_link_libraries(kpeek PRIVATE
 install(TARGETS kpeek ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})
 install(PROGRAMS ${KPEEK_APP_ID}.desktop DESTINATION ${KDE_INSTALL_APPDIR})
 install(FILES ${KPEEK_APP_ID}.metainfo.xml DESTINATION ${KDE_INSTALL_METAINFODIR})
+# The "Peek" entry in Dolphin's context menu (the Flatpak gets it from the KDE Store package instead).
+install(FILES ../servicemenu/kpeek.desktop DESTINATION ${KDE_INSTALL_DATADIR}/kio/servicemenus)
 ecm_install_icons(ICONS sc-apps-${KPEEK_APP_ID}.svg DESTINATION ${KDE_INSTALL_ICONDIR})
