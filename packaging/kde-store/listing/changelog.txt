@@ -1,3 +1,7 @@
+1.0.1
+- KPeek quits when you close a preview: nothing stays running in the background.
+- A borderless preview window: drag the header bar to move it, drag its edges to resize it.
+
 1.0.0: first stable release.
 - Previews images, PDFs, comic books, office documents, video and audio, text and code, Markdown, 3D models, archives and fonts.
 - Arrow keys move through the selection or the whole folder; zoom with Ctrl and the mouse wheel or the header buttons; drag to pan.

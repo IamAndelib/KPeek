@@ -9,19 +9,20 @@
 #include <QPointer>
 #include <QQmlEngine>
 #include <QSize>
-#include <QTimer>
 #include <QUrl>
 
 #include "filenavigator.h"
+
+#include <KWindowShadow>
 
 class QQuickWindow;
 
 /**
  * Owns what is being previewed and the preview window's visibility.
  *
- * KPeek is a single resident instance: each `kpeek <files>` invocation (from the
- * Dolphin service menu shortcut) is forwarded here through KDBusService. Invoking it
- * again for what is already shown closes the preview, so one key both opens and closes it.
+ * While a preview is open, KPeek is a single instance: further `kpeek <files>` invocations (from the
+ * Dolphin service menu shortcut) are forwarded here through KDBusService. Invoking it again for what
+ * is shown closes the preview, so one key both opens and closes it. Closing quits the process.
  */
 class PeekController : public QObject
 {
@@ -114,7 +115,7 @@ private:
     };
     QFutureWatcher<FolderSize> m_folderSizeWatcher;
     QPointer<QQuickWindow> m_window;
-    QTimer m_idleQuitTimer;
+    KWindowShadow m_shadow;
     bool m_showing = false;
 
     QString m_viewer;

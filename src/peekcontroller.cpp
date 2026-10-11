@@ -2,7 +2,6 @@
 // SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
 
 #include "peekcontroller.h"
-#include "pdfdocument.h"
 #include "systeminfo.h"
 #include "thumbnailcache.h"
 #include "viewerresolver.h"
@@ -10,6 +9,7 @@
 
 #include <KFormat>
 #include <KLocalizedString>
+#include <KWindowShadow>
 #include <KWindowSystem>
 
 #include <QCoreApplication>
@@ -25,18 +25,41 @@
 #include <QQuickWindow>
 #include <QtConcurrentRun>
 
-#ifdef __GLIBC__
-#include <malloc.h>
-#endif
-
-using namespace std::chrono_literals;
+#include <cmath>
 
 namespace
 {
 PeekController *s_instance = nullptr;
 
-// How long the hidden window stays resident so the next preview opens instantly.
-constexpr auto IdleQuitTimeout = 10min;
+/// A soft drop shadow for the frameless window, drawn by the compositor (Plasma; elsewhere it's ignored).
+/// One image whose centre pixel stands for the window, sliced into the eight tiles around it.
+void addShadow(KWindowShadow *shadow)
+{
+    constexpr int radius = 22;
+    constexpr int size = radius * 2 + 1;
+    QImage image(size, size, QImage::Format_ARGB32_Premultiplied);
+    for (int y = 0; y < size; ++y) {
+        for (int x = 0; x < size; ++x) {
+            const double distance = std::hypot(x - radius, y - radius) / radius;
+            const double strength = distance >= 1 ? 0 : std::pow(1 - distance, 2) * 0.32;
+            image.setPixelColor(x, y, QColor(0, 0, 0, int(strength * 255)));
+        }
+    }
+    const auto tile = [&image](int x, int y, int w, int h) {
+        auto t = KWindowShadowTile::Ptr::create();
+        t->setImage(image.copy(x, y, w, h));
+        return t;
+    };
+    shadow->setTopLeftTile(tile(0, 0, radius, radius));
+    shadow->setTopTile(tile(radius, 0, 1, radius));
+    shadow->setTopRightTile(tile(radius + 1, 0, radius, radius));
+    shadow->setLeftTile(tile(0, radius, radius, 1));
+    shadow->setRightTile(tile(radius + 1, radius, radius, 1));
+    shadow->setBottomLeftTile(tile(0, radius + 1, radius, radius));
+    shadow->setBottomTile(tile(radius, radius + 1, 1, radius));
+    shadow->setBottomRightTile(tile(radius + 1, radius + 1, radius, radius));
+    shadow->setPadding(QMargins(radius, radius, radius, radius));
+}
 }
 
 PeekController::PeekController(QObject *parent)
@@ -44,13 +67,10 @@ PeekController::PeekController(QObject *parent)
 {
     Q_ASSERT(!s_instance);
     s_instance = this;
+    addShadow(&m_shadow);
 
-    m_idleQuitTimer.setSingleShot(true);
-    m_idleQuitTimer.setInterval(IdleQuitTimeout);
-    connect(&m_idleQuitTimer, &QTimer::timeout, qApp, &QCoreApplication::quit);
-
-    // setFuture() drops the results of earlier, abandoned requests. takeResult(): a finished future
-    // would otherwise keep its copy of a 100k-entry listing for as long as the process stays resident.
+    // setFuture() drops the results of earlier, abandoned requests; takeResult() moves a 100k-entry
+    // listing out of the future instead of copying it.
     connect(&m_siblingsWatcher, &QFutureWatcher<FileNavigator::Siblings>::finished, this, [this] {
         m_navigator.setSiblings(m_siblingsWatcher.future().takeResult());
         Q_EMIT positionChanged();
@@ -142,35 +162,12 @@ void PeekController::close()
         return;
     }
     m_showing = false;
-    Q_EMIT showingChanged(); // unloads the viewer
-    m_idleQuitTimer.start();
-
-    // Hide only after one frame without the viewer has been drawn: the scene graph frees the
-    // textures of destroyed items while rendering, which a hidden window never does. Then hand the
-    // rest back too, since the process stays resident: scene-graph caches, open PDF documents, the
-    // folder listing, JavaScript garbage and freed heap. The timer is a fallback in case no frame gets rendered (e.g. the window is covered).
-    auto hideAndRelease = [this] {
-        if (!m_window || m_showing || !m_window->isVisible()) {
-            return;
-        }
-        m_window->hide();
-        m_window->releaseResources();
-        PdfDocument::releaseCache();
-        // The next preview starts a new selection anyway; a 100k-file folder listing alone is ~100 MB.
-        m_navigator = FileNavigator();
-        if (QQmlEngine *engine = qmlEngine(m_window)) {
-            engine->collectGarbage();
-            engine->trimComponentCache();
-        }
-#ifdef __GLIBC__
-        malloc_trim(0);
-#endif
-    };
+    Q_EMIT showingChanged(); // unloads the viewer, stopping playback
+    // Nothing stays behind between previews: no background process, no tray entry, no memory.
     if (m_window) {
-        connect(m_window, &QQuickWindow::frameSwapped, this, hideAndRelease, Qt::SingleShotConnection);
-        m_window->update();
-        QTimer::singleShot(250, this, hideAndRelease);
+        m_window->hide();
     }
+    QCoreApplication::quit();
 }
 
 void PeekController::openExternally()
@@ -188,7 +185,6 @@ void PeekController::openExternally()
 
 void PeekController::raiseWindow()
 {
-    m_idleQuitTimer.stop();
     if (!m_window) {
         return;
     }
@@ -200,6 +196,10 @@ void PeekController::raiseWindow()
     // which lets Wayland compositors give the already-running window focus.
     KWindowSystem::updateStartupId(m_window);
     m_window->show();
+    if (!m_shadow.isCreated()) {
+        m_shadow.setWindow(m_window);
+        m_shadow.create(); // needs the native window, which exists once shown
+    }
     m_window->raise();
     KWindowSystem::activateWindow(m_window);
 }

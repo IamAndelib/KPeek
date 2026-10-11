@@ -17,8 +17,11 @@ QQC2.ApplicationWindow {
     minimumWidth: Kirigami.Units.gridUnit * 20
     minimumHeight: Kirigami.Units.gridUnit * 12
     visible: false
+    // No titlebar or border: a preview, not another window. The header bar moves it, the edges resize it,
+    // and the compositor draws its shadow (PeekController::setWindow()).
+    flags: Qt.Window | Qt.FramelessWindowHint
 
-    // Closing the window only hides it; the process stays resident for the next preview.
+    // Closing the window closes the preview, which quits KPeek.
     onClosing: close => {
         close.accepted = false;
         PeekController.close();
@@ -28,6 +31,14 @@ QQC2.ApplicationWindow {
         // Layouts don't mirror by themselves for right-to-left languages.
         LayoutMirroring.enabled: Qt.application.layoutDirection === Qt.RightToLeft
         LayoutMirroring.childrenInherit: true
+
+        // The header is the titlebar: dragging anywhere on it except a button moves the window.
+        // Buttons take their own presses, so this only ever sees the bar, the file name and the counter.
+        DragHandler {
+            target: null
+            cursorShape: Qt.ClosedHandCursor
+            onActiveChanged: if (active) root.startSystemMove()
+        }
 
         RowLayout {
             anchors.fill: parent
@@ -211,5 +222,57 @@ QQC2.ApplicationWindow {
     Shortcut {
         sequences: ["Return", "Enter"]
         onActivated: PeekController.openExternally()
+    }
+
+    // Edges and corners that resize the frameless window, above the header and the viewer.
+    Item {
+        parent: root.Overlay.overlay
+        anchors.fill: parent
+        z: 1000
+
+        // The window's edge, visible on any background.
+        Rectangle {
+            anchors.fill: parent
+            color: "transparent"
+            border.color: Kirigami.ColorUtils.linearInterpolation(Kirigami.Theme.backgroundColor, Kirigami.Theme.textColor, Kirigami.Theme.frameContrast)
+        }
+
+        Repeater {
+            // [edges, x and y as fractions of the window, spans the full width, spans the full height]
+            model: [
+                [Qt.LeftEdge, 0, 0, 0, 1], [Qt.RightEdge, 1, 0, 0, 1], [Qt.TopEdge, 0, 0, 1, 0], [Qt.BottomEdge, 0, 1, 1, 0],
+                [Qt.LeftEdge | Qt.TopEdge, 0, 0, 0, 0], [Qt.RightEdge | Qt.TopEdge, 1, 0, 0, 0],
+                [Qt.LeftEdge | Qt.BottomEdge, 0, 1, 0, 0], [Qt.RightEdge | Qt.BottomEdge, 1, 1, 0, 0]
+            ]
+
+            Item {
+                required property var modelData
+                readonly property int edges: modelData[0]
+                // Corners get a larger target than edges.
+                readonly property int size: (modelData[3] || modelData[4] ? 1 : 2) * (Kirigami.Units.smallSpacing + 2)
+
+                x: modelData[1] * (parent.width - size)
+                y: modelData[2] * (parent.height - size)
+                width: modelData[3] ? parent.width : size
+                height: modelData[4] ? parent.height : size
+
+                HoverHandler {
+                    cursorShape: {
+                        const e = parent.edges;
+                        if (e === (Qt.LeftEdge | Qt.TopEdge) || e === (Qt.RightEdge | Qt.BottomEdge)) {
+                            return Qt.SizeFDiagCursor;
+                        }
+                        if (e === (Qt.RightEdge | Qt.TopEdge) || e === (Qt.LeftEdge | Qt.BottomEdge)) {
+                            return Qt.SizeBDiagCursor;
+                        }
+                        return e & (Qt.LeftEdge | Qt.RightEdge) ? Qt.SizeHorCursor : Qt.SizeVerCursor;
+                    }
+                }
+                DragHandler {
+                    target: null
+                    onActiveChanged: if (active) root.startSystemResize(parent.edges)
+                }
+            }
+        }
     }
 }

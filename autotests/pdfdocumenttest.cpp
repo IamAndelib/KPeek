@@ -53,8 +53,6 @@ void PdfDocumentTest::testLayout()
     const PdfDocument::Layout layout = PdfDocument::readLayout(key(writePdf(QStringLiteral("two.pdf"), QSizeF(300, 400), 2)));
     QVERIFY(!layout.failed);
     QCOMPARE(layout.pageSizes.size(), 2);
-    PdfDocument::releaseCache(); // documents reopen after being released while hidden
-    QCOMPARE(PdfDocument::readLayout(key(m_dir.filePath(QStringLiteral("two.pdf")))).pageSizes.size(), 2);
 }
 
 void PdfDocumentTest::testRenderStaysWithinBudget()

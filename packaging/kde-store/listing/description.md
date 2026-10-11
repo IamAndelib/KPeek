@@ -8,10 +8,10 @@ The KDE Store listing text: paste everything below the line into the store's des
 
 **Quick Look for Dolphin.** Tap Meta+Space on a file and it pops up. Tap again and it's gone.
 
-- **Instant:** KPeek stays warm in the background, so previews open in a blink, and Dolphin's own thumbnail shows up first while the full file loads.
+- **Quick, then gone:** pops up in a fraction of a second, showing Dolphin's own thumbnail while the full file loads. Close it and nothing keeps running: no background process, no tray icon.
 - **Previews nearly everything:** photos (HEIC, AVIF, JPEG XL, animated GIF/WebP), PDFs and comic books, video and music, code in 300+ languages, Markdown, 3D models, archives and fonts.
 - **Glide through folders:** the arrow keys walk the whole folder or just your selection. Ctrl+wheel zooms anything; drag to pan.
-- **Featherweight:** photos decode once at screen size, the graphics card does the zooming and the video decoding, and KPeek drops to about 65 MB the moment you close it.
+- **Featherweight:** photos decode once at screen size, the graphics card does the zooming and the video decoding, and closing it frees everything.
 - **Sandboxed and private:** a Flatpak that opens your files read-only and never touches the network.
 - **Any desktop:** Plasma, GNOME, Xfce or a tiling window manager. If you use Dolphin, KPeek works.
 

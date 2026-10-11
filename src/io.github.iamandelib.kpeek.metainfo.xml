@@ -73,6 +73,14 @@ SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
     <control>pointing</control>
   </supports>
   <releases>
+    <release version="1.0.1" date="2026-10-11">
+      <description>
+        <ul>
+          <li>KPeek quits when you close a preview: nothing stays running in the background</li>
+          <li>A borderless preview window: drag the header bar to move it, drag its edges to resize it</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.0.0" date="2026-10-11">
       <description>
         <p>First stable release.</p>

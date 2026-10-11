@@ -105,16 +105,6 @@ PdfDocument::Layout PdfDocument::readLayout(const QString &key)
     return layout;
 }
 
-void PdfDocument::releaseCache()
-{
-    // Called while hiding the window: never wait for a page that is still rendering.
-    // Documents left open now are released the next time.
-    if (s_mutex.tryLock()) {
-        s_documents.clear();
-        s_mutex.unlock();
-    }
-}
-
 QString PdfDocument::cacheKey(const QString &key)
 {
     // key is "<mtime>/<path>". Qt hands image providers the id partly percent-decoded (spaces and

@@ -38,9 +38,12 @@ Read README.md first; it covers the features, the Dolphin integration (service m
   decoders the Flatpak runtime lacks.
 - A second invocation forwards its arguments in `src/forwarder.cpp` (plain libdbus, before QApplication
   exists, saving 40–70 ms per key press). It speaks KDBusService's `CommandLine` protocol: keep the two in sync.
-- Resident memory: `close()` releases caches, and `main()` limits glibc to two malloc arenas (decoder threads
-  otherwise strand hundreds of MB). Large 3D models load only on request. Measure before/after with
+- No resident process: closing the preview quits KPeek (a windowless Flatpak would show up in Plasma's
+  system tray as a background app). `main()` limits glibc to two malloc arenas (decoder threads otherwise
+  strand hundreds of MB during a session). Large 3D models load only on request. Measure before/after with
   `/proc/<pid>/smaps_rollup` (Private_Dirty), not RSS.
+- The window is frameless: the header bar moves it (a `DragHandler` calling `startSystemMove()`; buttons keep their
+  clicks), edge strips on `Overlay.overlay` resize it, and `KWindowShadow` asks the compositor for a shadow.
 - Background work goes on `workerPool()` (`src/workerpool.h`), libarchive scans on `archivePool()`; never
   `QThreadPool::globalInstance()`.
 - Never set a KSyntaxHighlighting `SyntaxHighlighter.textEdit` to null: it crashes. Swap components instead.
@@ -52,7 +55,7 @@ Read README.md first; it covers the features, the Dolphin integration (service m
 - Build in a container with the dependencies from `.github/workflows/ci.yml` (the maintainer uses a Fedora
   distrobox named `dev`: prefix commands with `distrobox enter dev --`).
 - Build and test: `cmake -B build -G Ninja && cmake --build build && ctest --test-dir build`.
-- KPeek stays resident after a preview: `pkill -x kpeek` after rebuilding, or new runs forward to the old process.
+- An open preview receives new runs (they forward to it): close it, or `pkill -x kpeek`, after rebuilding.
 - Qt logs go to the journal unless `QT_FORCE_STDERR_LOGGING=1` is set.
 - For headless runs, use a private bus and no portal:
   `dbus-run-session -- env QT_QPA_PLATFORM=offscreen QT_NO_XDG_DESKTOP_PORTAL=1 ./build/bin/kpeek <file>`.

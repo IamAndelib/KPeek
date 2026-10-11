@@ -11,14 +11,15 @@
 
 ## Highlights
 
-- **Instant.** KPeek stays warm in the background, so previews open in a blink, and Dolphin's own
-  thumbnail shows up first while the full file loads.
+- **Quick, then gone.** Pops up in a fraction of a second, showing Dolphin's own thumbnail while the full
+  file loads. Close it and nothing keeps running: no background process, no tray icon.
 - **Previews nearly everything.** Photos (HEIC, AVIF, JPEG XL, animated GIF/WebP), PDFs and comic books,
   video and music, code in 300+ languages, Markdown, 3D models, archives and fonts.
 - **Glide through folders.** <kbd>←</kbd> <kbd>→</kbd> walk the whole folder or just your selection.
   <kbd>Ctrl</kbd>+wheel zooms anything; drag to pan.
 - **Featherweight.** Photos decode once at screen size (a 24 MP shot peaks around 225 MB), the graphics card
-  does the zooming and the video decoding, and KPeek drops to about 65 MB the moment you close it.
+  does the zooming and the video decoding, and closing
+  it frees everything.
 - **Sandboxed and private.** A Flatpak that opens your files read-only and never touches the network.
 - **Any desktop.** Plasma, GNOME, Xfce or a tiling window manager: if you use Dolphin, KPeek works.
 
@@ -90,8 +91,8 @@ Dolphin's context menu that receives the selected files. Dolphin 26.04 and later
 action, so you can bind it under *Settings → Configure Keyboard Shortcuts → Peek*. The suggested shortcut is <kbd>Meta</kbd>+<kbd>Space</kbd>;
 plain Space already toggles Dolphin's selection mode.
 
-KPeek runs as a single instance. After the first preview it stays in the background for 10 minutes, so the next one opens instantly.
-Invoking it again on the file that's already showing closes the preview.
+KPeek shows one preview window at a time: the shortcut on another file switches it, and on the file being shown
+closes it. Closing the preview quits KPeek, so nothing stays in the background.
 
 ## Requirements
 
@@ -128,8 +129,8 @@ scripts/build-flatpak.sh        # writes kpeek.flatpak and installs it for your 
 scripts/build-store-package.sh  # writes dist/kpeek-servicemenu-<version>.tar.gz
 ```
 
-Pushing a `v*` tag builds both and attaches them to a GitHub release. After rebuilding, run `pkill -x kpeek`,
-because the resident instance keeps running the old binary. Set `QT_FORCE_STDERR_LOGGING=1` to see Qt's
+Pushing a `v*` tag builds both and attaches them to a GitHub release. After rebuilding, close any open preview
+(or run `pkill -x kpeek`): an open preview keeps running the old binary. Set `QT_FORCE_STDERR_LOGGING=1` to see Qt's
 messages in the terminal instead of the system journal.
 
 ## Contributing
