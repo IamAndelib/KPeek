@@ -11,6 +11,7 @@ dir=$(mktemp -d)
 trap 'rm -rf "$dir"' EXIT
 failed=0
 ours='  <Action name="servicemenu_kpeek.desktop::peek" shortcut="Meta+Space"/>'
+same() { [ "$(cksum <"$1")" = "$(cksum <"$2")" ]; } # byte-identical (cmp is not in every container)
 
 check() { # name, expected status, file, expected content (empty: unchecked)
     status=0
@@ -44,10 +45,10 @@ check "existing block" 0 "$dir/block.rc" "<!DOCTYPE gui>
 $ours
  </ActionProperties>
 </gui>"
-cmp -s "$dir/block.rc.kpeek-backup" "$dir/block.orig" || { echo "FAIL backup"; failed=1; }
+same "$dir/block.rc.kpeek-backup" "$dir/block.orig" || { echo "FAIL backup"; failed=1; }
 check "existing block, again" 1 "$dir/block.rc" ""
 remove_shortcut "$dir/block.rc"
-if cmp -s "$dir/block.rc" "$dir/block.orig"; then echo "PASS remove"; else echo "FAIL remove"; failed=1; fi
+if same "$dir/block.rc" "$dir/block.orig"; then echo "PASS remove"; else echo "FAIL remove"; failed=1; fi
 
 printf '<!DOCTYPE gui>\n<gui name="dolphin" version="49">\n <ActionProperties scheme="Default"/>\n</gui>\n' >"$dir/closed.rc"
 check "self-closed block" 0 "$dir/closed.rc" "<!DOCTYPE gui>
