@@ -13,3 +13,9 @@ path = ["docs/screenshots/**"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = ["2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>", "KDE Visual Design Group (\"Next\" wallpaper)"]
 SPDX-License-Identifier = "CC-BY-SA-4.0"
+
+[[annotations]]
+path = ["packaging/kde-store/listing/kpeek-256.png"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>"
+SPDX-License-Identifier = "GPL-2.0-or-later"
