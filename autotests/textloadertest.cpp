@@ -93,21 +93,27 @@ void TextLoaderTest::testMarkdownImages()
     QVERIFY(mkfifo(QFile::encodeName(dir.filePath(QStringLiteral("pipe.png"))).constData(), 0600) == 0);
     const QUrl base = QUrl::fromLocalFile(dir.filePath(QStringLiteral("README.md")));
 
-    // Qt drops HTML images, and everything after them, so those come last.
-    const QString html = TextLoader::markdownToHtml(QStringLiteral("# Title\n\n![a](pic.png) ![b](/dev/zero) ![c](pipe.png) ![d](missing.png) "
-                                                                   "![e](https://example.com/x.png)\n\nPress <kbd>Space</kbd>.\n\n"
-                                                                   "<table background=\"/dev/zero\"><tr><td background=\"/dev/zero\">t</td></tr></table>\n\n"
-                                                                   "<div style=\"background-image: url(/dev/zero)\">d</div>\n\n"
-                                                                   "<link rel=\"stylesheet\" href=\"/dev/zero\">\n\nInline <img src=\"/dev/zero\">"),
-                                                    base);
-    // Only the real, local picture is still an image, by its absolute path.
-    QCOMPARE(html.count(QLatin1String("<img ")), 1);
-    QVERIFY(html.contains(QLatin1String("<img src=\"") + QUrl::fromLocalFile(dir.filePath(QStringLiteral("pic.png"))).toString() + QLatin1Char('"')));
+    const QString html =
+        TextLoader::markdownToHtml(QStringLiteral("<p align=\"center\">\n  <img src=\"pic.png\" width=\"99999\">\n</p>\n\n# Title\n\n"
+                                                  "![a](pic.png) ![b](/dev/zero) ![c](pipe.png) ![d](missing.png) "
+                                                  "![e](https://example.com/x.png)\n\nPress <kbd>Space</kbd>. Inline <img src=\"/dev/zero\"> "
+                                                  "image.\n\n<table background=\"/dev/zero\"><tr><td background=\"/dev/zero\">t</td></tr></table>\n\n"
+                                                  "<div style=\"background-image: url(/dev/zero)\">d</div>\n\n```\nCode <br> stays\n```\n\n"
+                                                  "<link rel=\"stylesheet\" href=\"/dev/zero\">\n\nThe end."),
+                                   base);
+    // Only the real, local picture is still an image (as a centred logo and inline), by its absolute path,
+    // at its own size.
+    QCOMPARE(html.count(QLatin1String("<img ")), 2);
+    QCOMPARE(html.count(QLatin1String("<img src=\"") + QUrl::fromLocalFile(dir.filePath(QStringLiteral("pic.png"))).toString() + QLatin1Char('"')), 2);
+    QVERIFY(!html.contains(QLatin1String("99999")));
     QVERIFY(!html.contains(QLatin1String("/dev/zero"))); // nor as a background or a stylesheet
     QVERIFY(!html.contains(QLatin1String("pipe.png")));
     QVERIFY(!html.contains(QLatin1String("example.com")));
-    QVERIFY(html.contains(QLatin1String("Space")) && !html.contains(QLatin1String("&lt;kbd"))); // harmless HTML still renders
+    // Nothing after an HTML image is lost (Qt's importer used to drop it), harmless HTML renders, code is untouched.
+    QVERIFY(html.contains(QLatin1String("Title")) && html.contains(QLatin1String("image.")) && html.contains(QLatin1String("The end.")));
+    QVERIFY(html.contains(QLatin1String("Space")) && !html.contains(QLatin1String("&lt;kbd")));
     QVERIFY(html.contains(QLatin1String(">t<")) && html.contains(QLatin1String(">d<")));
+    QVERIFY(html.contains(QLatin1String("Code &lt;br&gt; stays")));
     QVERIFY(!html.contains(QLatin1String("<body style"))); // the viewer's font and zoom apply
 }
 

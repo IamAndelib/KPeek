@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="src/sc-apps-io.github.iamandelib.kpeek.svg" width="128" alt="KPeek logo">
+</p>
+
 # KPeek
 
 **Quick Look for Dolphin.** Tap <kbd>Meta</kbd>+<kbd>Space</kbd> on a file and it pops up. Tap again and it's gone.

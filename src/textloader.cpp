@@ -112,12 +112,42 @@ protected:
         return {};
     }
 };
+
+/**
+ * Writes HTML's void elements as self-closing (<img … />): Qt's Markdown importer waits for an </img> that never
+ * comes and drops most of the text after one, as in the centred logos and screenshots of many READMEs. Code is
+ * left as it is.
+ */
+QString selfCloseVoidTags(const QString &markdown)
+{
+    static const QRegularExpression voidTag(QStringLiteral("<(area|base|br|col|embed|hr|img|input|link|meta|source|track|wbr)\\b([^>]*?)\\s*/?>"),
+                                            QRegularExpression::CaseInsensitiveOption);
+    QStringList lines = markdown.split(QLatin1Char('\n'));
+    bool fenced = false;
+    for (QString &line : lines) {
+        const QString trimmed = line.trimmed();
+        if (trimmed.startsWith(QLatin1String("```")) || trimmed.startsWith(QLatin1String("~~~"))) {
+            fenced = !fenced;
+            continue;
+        }
+        if (fenced || line.startsWith(QLatin1String("    ")) || line.startsWith(QLatin1Char('\t'))) {
+            continue;
+        }
+        // Between backticks is inline code: only the parts outside them change.
+        QStringList parts = line.split(QLatin1Char('`'));
+        for (qsizetype i = 0; i < parts.size(); i += 2) {
+            parts[i].replace(voidTag, QStringLiteral("<\\1\\2 />"));
+        }
+        line = parts.join(QLatin1Char('`'));
+    }
+    return lines.join(QLatin1Char('\n'));
+}
 }
 
 QString TextLoader::markdownToHtml(const QString &markdown, const QUrl &base)
 {
     InertDocument document;
-    document.setMarkdown(markdown, QTextDocument::MarkdownDialectGitHub);
+    document.setMarkdown(selfCloseVoidTags(markdown), QTextDocument::MarkdownDialectGitHub);
 
     // Collected first, then changed from the end, so earlier positions stay valid.
     QList<std::pair<int, QString>> images; // position, absolute file URL or empty to remove

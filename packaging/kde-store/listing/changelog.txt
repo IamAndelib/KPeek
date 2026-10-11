@@ -1,3 +1,6 @@
+1.0.6
+- Markdown files with HTML images, such as the centred logos and screenshots of many READMEs, now show in full.
+
 1.0.5
 - Previews files in the Trash.
 - Pressing the shortcut with nothing selected no longer shows an error.
