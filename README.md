@@ -65,7 +65,8 @@ search for *Peek*, and assign <kbd>Meta</kbd>+<kbd>Space</kbd>. Without a shortc
 
 ## Keys and mouse
 
-With several files selected, KPeek moves through those; with one, through its whole folder.
+With several files selected, KPeek moves through those; with one, through its whole folder. It works in the
+Trash too.
 
 | Input | Action |
 |---|---|

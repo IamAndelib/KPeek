@@ -14,6 +14,16 @@
  * browsed together with its siblings in the parent folder, sorted like Dolphin's
  * default view: folders first, then natural, case-insensitive name order.
  */
+/**
+ * The file behind a trash:/ URL from Dolphin's Trash, or @p url unchanged. trash:/0-name/… is in the home
+ * trash, @p homeTrash (…/Trash); other numbers are the trash folders of other drives, which KIO numbers
+ * at runtime, so those are found by name.
+ */
+QUrl trashedFileUrl(const QUrl &url, const QString &homeTrash);
+
+/// The home trash folder (the host's, in the Flatpak).
+QString homeTrash();
+
 class FileNavigator
 {
 public:

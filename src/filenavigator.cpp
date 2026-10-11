@@ -3,10 +3,13 @@
 
 #include "filenavigator.h"
 #include "naturalsort.h"
+#include "systeminfo.h"
 
 #include <QCollator>
 #include <QDir>
 #include <QFileInfo>
+#include <QStandardPaths>
+#include <QStorageInfo>
 
 #include <algorithm>
 #include <vector>
@@ -129,4 +132,47 @@ QList<QUrl> FileNavigator::siblings(const QUrl &url)
         result.append(QUrl::fromLocalFile(item.path));
     }
     return result;
+}
+
+QString homeTrash()
+{
+    if (isFlatpak()) {
+        const QString hostData = qEnvironmentVariable("HOST_XDG_DATA_HOME");
+        return (hostData.isEmpty() ? QDir::homePath() + QStringLiteral("/.local/share") : hostData) + QStringLiteral("/Trash");
+    }
+    return QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + QStringLiteral("/Trash");
+}
+
+QUrl trashedFileUrl(const QUrl &url, const QString &homeTrash)
+{
+    if (url.scheme() != QLatin1String("trash")) {
+        return url;
+    }
+    // trash:/<trash number>-<name in its files folder>[/path inside a trashed folder]
+    const QString path = url.path().mid(1);
+    const qsizetype dash = path.indexOf(QLatin1Char('-'));
+    if (dash <= 0 || path.contains(QLatin1String("/../")) || path.endsWith(QLatin1String("/.."))) {
+        return url;
+    }
+    const QString entry = path.mid(dash + 1);
+    if (entry.isEmpty() || entry.startsWith(QLatin1String(".."))) {
+        return url;
+    }
+    QStringList trashes;
+    if (path.first(dash) == QLatin1String("0")) {
+        trashes = {homeTrash};
+    } else {
+        const QString uid = QString::number(getuid());
+        const QList<QStorageInfo> volumes = QStorageInfo::mountedVolumes();
+        for (const QStorageInfo &volume : volumes) {
+            trashes << volume.rootPath() + QStringLiteral("/.Trash-") + uid << volume.rootPath() + QStringLiteral("/.Trash/") + uid;
+        }
+    }
+    for (const QString &trash : std::as_const(trashes)) {
+        const QString file = trash + QStringLiteral("/files/") + entry;
+        if (QFileInfo::exists(file)) {
+            return QUrl::fromLocalFile(file);
+        }
+    }
+    return url;
 }

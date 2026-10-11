@@ -5,13 +5,16 @@
 # Dolphin 26.04 and later let users bind a shortcut to it (KPeek suggests Meta+Space).
 # The Exec line suits a native install; scripts/dev-install-servicemenu.sh and
 # scripts/build-store-package.sh (for the Flatpak) rewrite it.
+# Local files and the Trash (which service menus must ask for). %U with "KIO": URLs reach KPeek as they are,
+# never through kioexec (which copies remote and trashed files, and fails on an empty selection).
 [Desktop Entry]
 Type=Service
 MimeType=all/all;
+X-KDE-Protocols=file,trash,KIO
 Actions=peek;
 
 [Desktop Action peek]
 Name=Peek
 Comment=Quickly preview the selected files
 Icon=io.github.iamandelib.kpeek
-Exec=kpeek %F
+Exec=kpeek %U

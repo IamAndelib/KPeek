@@ -73,6 +73,11 @@ SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
     <control>pointing</control>
   </supports>
   <releases>
+    <release version="1.0.5" date="2026-10-11">
+      <description>
+        <p>Previews files in the Trash. Pressing the shortcut with nothing selected no longer shows an error.</p>
+      </description>
+    </release>
     <release version="1.0.4" date="2026-10-11">
       <description>
         <p>Security and robustness release.</p>

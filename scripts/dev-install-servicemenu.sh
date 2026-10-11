@@ -26,7 +26,7 @@ esac
 mkdir -p "$(dirname "$MENU")"
 while IFS= read -r line; do
     case $line in
-    Exec=*) printf 'Exec=distrobox enter dev -- "%s/build/bin/kpeek" %%F\n' "$ROOT" ;;
+    Exec=*) printf 'Exec=distrobox enter dev -- "%s/build/bin/kpeek" %%U\n' "$ROOT" ;;
     *) printf '%s\n' "$line" ;;
     esac
 done <"$ROOT/servicemenu/kpeek.desktop" >"$MENU"

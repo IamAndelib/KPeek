@@ -36,6 +36,7 @@ private Q_SLOTS:
     void testMatchesSelection();
     void testCaseOnlyDifference();
     void testListingRefreshesWhenFolderChanges();
+    void testTrashedFile();
 
 private:
     QUrl urlFor(const QString &name) const;
@@ -169,6 +170,28 @@ void FileNavigatorTest::testListingRefreshesWhenFolderChanges()
 
     select(nav, {QUrl::fromLocalFile(first.fileName())});
     QCOMPARE(nav.count(), 2);
+}
+
+void FileNavigatorTest::testTrashedFile()
+{
+    QTemporaryDir trash;
+    QVERIFY(QDir(trash.path()).mkpath(QStringLiteral("files/Old Folder/inner")));
+    QVERIFY(QFile(trash.filePath(QStringLiteral("files/photo 1.png"))).open(QIODevice::WriteOnly));
+    QVERIFY(QFile(trash.filePath(QStringLiteral("files/Old Folder/inner/a.txt"))).open(QIODevice::WriteOnly));
+    QVERIFY(QFile(trash.filePath(QStringLiteral("secret"))).open(QIODevice::WriteOnly));
+    const auto map = [&](const QString &url) {
+        return trashedFileUrl(QUrl(url), trash.path());
+    };
+
+    QCOMPARE(map(QStringLiteral("trash:/0-photo%201.png")), QUrl::fromLocalFile(trash.filePath(QStringLiteral("files/photo 1.png"))));
+    QCOMPARE(map(QStringLiteral("trash:/0-Old%20Folder/inner/a.txt")), QUrl::fromLocalFile(trash.filePath(QStringLiteral("files/Old Folder/inner/a.txt"))));
+    // Unknown, or anything trying to leave the trash's files folder, stays a trash URL (the info card).
+    QCOMPARE(map(QStringLiteral("trash:/0-missing.png")), QUrl(QStringLiteral("trash:/0-missing.png")));
+    QCOMPARE(map(QStringLiteral("trash:/0-../secret")), QUrl(QStringLiteral("trash:/0-../secret")));
+    QCOMPARE(map(QStringLiteral("trash:/0-Old%20Folder/../../secret")), QUrl(QStringLiteral("trash:/0-Old%20Folder/../../secret")));
+    QCOMPARE(map(QStringLiteral("trash:/")), QUrl(QStringLiteral("trash:/")));
+    const QUrl local = QUrl::fromLocalFile(trash.filePath(QStringLiteral("secret")));
+    QCOMPARE(trashedFileUrl(local, trash.path()), local);
 }
 
 QTEST_GUILESS_MAIN(FileNavigatorTest)

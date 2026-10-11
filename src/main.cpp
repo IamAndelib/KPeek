@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
 
 #include "comicbook.h"
+#include "filenavigator.h"
 #include "forwarder.h"
 #include "kpeek-version.h"
 #include "pdfdocument.h"
@@ -68,7 +69,10 @@ QList<QUrl> urlsFromArguments(QCommandLineParser &parser, const QStringList &arg
     QList<QUrl> urls;
     const QStringList positional = parser.positionalArguments();
     for (const QString &argument : positional) {
-        QUrl url = QUrl::fromUserInput(argument, workingDirectory, QUrl::AssumeLocalFile);
+        if (argument.isEmpty()) {
+            continue; // Dolphin passes an empty URL when nothing is selected
+        }
+        QUrl url = trashedFileUrl(QUrl::fromUserInput(argument, workingDirectory, QUrl::AssumeLocalFile), homeTrash());
         // The Flatpak runtime has its own /usr and /etc; the host's are under /run/host.
         if (isFlatpak() && url.isLocalFile()) {
             const QString path = QDir::cleanPath(url.toLocalFile());
