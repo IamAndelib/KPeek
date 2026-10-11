@@ -1,3 +1,6 @@
+1.0.2
+- The window can be resized from its top edge and top corners too.
+
 1.0.1
 - KPeek quits when you close a preview: nothing stays running in the background.
 - A borderless preview window: drag the header bar to move it, drag its edges to resize it.

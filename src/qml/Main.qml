@@ -224,11 +224,12 @@ QQC2.ApplicationWindow {
         onActivated: PeekController.openExternally()
     }
 
-    // Edges and corners that resize the frameless window, above the header and the viewer.
+    // Edges and corners that resize the frameless window. On the window's root item, above the header and the
+    // viewer: in the Controls overlay the header covered the top edge and corners.
     Item {
-        parent: root.Overlay.overlay
+        parent: root.contentItem.parent
         anchors.fill: parent
-        z: 1000
+        z: 1000000
 
         // The window's edge, visible on any background.
         Rectangle {
