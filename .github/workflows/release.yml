@@ -44,6 +44,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          git tag -l --format='%(contents)' "$GITHUB_REF_NAME" > notes.md
+          # actions/checkout turns the annotated tag into a lightweight one; fetch the real tag for its message.
+          git fetch --force origin "refs/tags/$GITHUB_REF_NAME:refs/tags/$GITHUB_REF_NAME"
+          git tag -l --format='%(contents:body)' "$GITHUB_REF_NAME" > notes.md # the first line is the title
           gh release create "$GITHUB_REF_NAME" --title "KPeek ${GITHUB_REF_NAME#v}" --notes-file notes.md \
             kpeek.flatpak dist/kpeek-servicemenu-*.tar.gz
