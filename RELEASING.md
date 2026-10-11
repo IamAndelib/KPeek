@@ -20,11 +20,12 @@ Push it and wait for CI to pass.
 ## 2. Tag it
 
 ```sh
-git tag -a vx.y.z -m "KPeek x.y.z" -m "- what changed" -m "- what else changed"
+git tag -a vx.y.z --cleanup=verbatim -F notes.txt   # first line "KPeek x.y.z", then the release notes
 git push origin vx.y.z
 ```
 
-The tag message becomes the release notes. The *Release* workflow checks that the version matches the two
+The tag message (after its first line) becomes the release notes, in Markdown. `--cleanup=verbatim` keeps
+`## Headings`: without it, git drops every line starting with `#` as a comment. The *Release* workflow checks that the version matches the two
 files above, builds `kpeek.flatpak` and `kpeek-servicemenu-x.y.z.tar.gz`, and publishes the GitHub release with both
 attached (about 20 minutes; follow it under *Actions*).
 

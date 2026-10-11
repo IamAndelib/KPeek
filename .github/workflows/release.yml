@@ -2,7 +2,7 @@ name: Release
 
 # Pushing a tag like v1.2.0 builds the Flatpak bundle and the KDE Store package and publishes a
 # GitHub release with both attached. The release notes are the tag's message:
-#   git tag -a v1.2.0 -m "KPeek 1.2.0" -m "- what changed"   &&   git push origin v1.2.0
+#   git tag -a v1.2.0 --cleanup=verbatim -F notes.txt   &&   git push origin v1.2.0   (see RELEASING.md)
 on:
   push:
     tags: ['v*']
