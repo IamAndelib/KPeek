@@ -50,3 +50,9 @@ To use a keyboard shortcut (Dolphin 26.04 or later):
   3. Click the shortcut column and press Meta+Space, then Apply.
 
 EOF
+
+# Dolphin runs this in a terminal window that closes as soon as it ends: keep the steps above readable.
+if [ -t 0 ]; then
+    printf 'Press Enter to close this window.'
+    read -r _
+fi

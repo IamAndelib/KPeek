@@ -15,3 +15,8 @@ if flatpak info --user "$APP" >/dev/null 2>&1; then
     flatpak uninstall --user -y "$APP"
     echo "Removed KPeek. (The KDE runtime stays; \"flatpak uninstall --unused\" removes it if nothing else needs it.)"
 fi
+
+if [ -t 0 ]; then
+    printf 'Press Enter to close this window.'
+    read -r _
+fi
