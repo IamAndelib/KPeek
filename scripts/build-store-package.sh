@@ -21,6 +21,7 @@ sed -e "s|@BUNDLE_URL@|https://github.com/IamAndelib/KPeek/releases/download/v$v
     -e "s|@BUNDLE_SHA256@|$sha256|" packaging/kde-store/install-it.sh >"$pkg/install-it.sh"
 cp packaging/kde-store/uninstall.sh "$pkg/"
 chmod +x "$pkg"/*.sh
+cp packaging/kde-store/dolphin-shortcut.sh "$pkg/" # sourced, not run
 sed 's|^Exec=.*|Exec=flatpak run io.github.iamandelib.kpeek %U|' servicemenu/kpeek.desktop >"$pkg/kpeek.desktop"
 cp LICENSES/GPL-2.0-or-later.txt "$pkg/LICENSE"
 

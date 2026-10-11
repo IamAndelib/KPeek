@@ -7,9 +7,12 @@ set -u
 
 APP=io.github.iamandelib.kpeek
 MENU="${XDG_DATA_HOME:-$HOME/.local/share}/kio/servicemenus/kpeek.desktop"
+# shellcheck source=packaging/kde-store/dolphin-shortcut.sh
+. "$(cd "$(dirname "$0")" && pwd)/dolphin-shortcut.sh"
 
 rm -f "$MENU"
-echo "Removed the \"Peek\" service menu."
+remove_shortcut
+echo "Removed the \"Peek\" service menu and its shortcut."
 
 if flatpak info --user "$APP" >/dev/null 2>&1; then
     flatpak uninstall --user -y "$APP"

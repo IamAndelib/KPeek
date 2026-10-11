@@ -17,7 +17,7 @@ The KDE Store listing text: paste everything below the line into the store's des
 
 **Install:** click Install. A terminal window shows the progress: KPeek installs as a Flatpak, and the first time also the KDE runtime it runs on (a 400 MB download, shared with other KDE Flatpaks). Restart Dolphin afterwards. Needs Flatpak, which most distributions include.
 
-**Shortcut** (Dolphin 26.04 or later): Settings → Configure Keyboard Shortcuts → search "Peek" → Meta+Space. Or right-click a file and choose Peek.
+**Shortcut** (Dolphin 26.04 or later): the installer sets Meta+Space, unless another Dolphin action already uses it. Change it in Settings → Configure Keyboard Shortcuts → search "Peek" (on GNOME, Super+Space switches the keyboard layout: pick another key). Or right-click a file and choose Peek.
 
 **Updates:** click Update here when a new version is listed.
 

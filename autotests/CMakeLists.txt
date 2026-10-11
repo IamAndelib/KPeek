@@ -49,3 +49,6 @@ set_tests_properties(qmltests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
 ecm_add_test(viewerinputtest.cpp TEST_NAME viewerinputtest LINK_LIBRARIES Qt6::Test Qt6::Quick)
 target_compile_definitions(viewerinputtest PRIVATE KPEEK_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/qml")
 set_tests_properties(viewerinputtest PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+# The KDE Store installer's Dolphin shortcut edit (packaging/kde-store/dolphin-shortcut.sh).
+add_test(NAME dolphinshortcuttest COMMAND sh ${CMAKE_CURRENT_SOURCE_DIR}/dolphinshortcuttest.sh)

@@ -24,6 +24,8 @@ BUNDLE_URL=@BUNDLE_URL@
 BUNDLE_SHA256=@BUNDLE_SHA256@
 MENU_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/kio/servicemenus"
 HERE=$(cd "$(dirname "$0")" && pwd)
+# shellcheck source=packaging/kde-store/dolphin-shortcut.sh
+. "$HERE/dolphin-shortcut.sh"
 
 if ! command -v flatpak >/dev/null 2>&1; then
     echo "KPeek is distributed as a Flatpak, but Flatpak isn't installed."
@@ -55,14 +57,24 @@ mkdir -p "$MENU_DIR"
 cp "$HERE/kpeek.desktop" "$MENU_DIR/kpeek.desktop"
 chmod +x "$MENU_DIR/kpeek.desktop" # Dolphin ignores user service menus that aren't executable
 
-cat <<EOF
+echo "==> Binding Peek to Meta+Space in Dolphin"
+shortcut=0
+set_shortcut || shortcut=$?
 
-KPeek is installed.
-
-Right-click any file in Dolphin and choose "Peek" (restart Dolphin first if it's open).
+echo
+echo "KPeek is installed. Restart Dolphin if it's open."
+case $shortcut in
+0) echo "Then press Meta+Space on a file to peek at it (Dolphin 26.04 or later), or right-click it and choose \"Peek\"." ;;
+1) echo "Then press your Peek shortcut on a file, or right-click it and choose \"Peek\"." ;;
+*)
+    [ "$shortcut" = 2 ] && echo "Another Dolphin action already uses Meta+Space, so Peek has no shortcut yet."
+    cat <<EOF
+Right-click any file in Dolphin and choose "Peek".
 To use a keyboard shortcut (Dolphin 26.04 or later):
   1. In Dolphin, open Settings > Configure Keyboard Shortcuts.
   2. Search for "Peek".
-  3. Click the shortcut column and press Meta+Space, then Apply.
-
+  3. Click the shortcut column and press the keys you want, then Apply.
 EOF
+    ;;
+esac
+echo

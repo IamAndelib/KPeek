@@ -62,10 +62,14 @@ tar -xzf kpeek-servicemenu-*.tar.gz
 kpeek-servicemenu/install-it.sh   # installs the newest KPeek Flatpak and adds "Peek" to Dolphin
 ```
 
-**Set the shortcut** (Dolphin 26.04 or later): in Dolphin, open *Settings → Configure Keyboard Shortcuts*,
-search for *Peek*, and assign <kbd>Meta</kbd>+<kbd>Space</kbd>. Without a shortcut, right-click a file and choose *Peek*.
+**The shortcut** (Dolphin 26.04 or later): the installer binds *Peek* to <kbd>Meta</kbd>+<kbd>Space</kbd>, unless
+another Dolphin action already uses that key or you had already given Peek a shortcut. To change it, open
+*Settings → Configure Keyboard Shortcuts* in Dolphin and search for *Peek*. On GNOME, <kbd>Super</kbd>+<kbd>Space</kbd>
+switches the keyboard layout before Dolphin sees it: pick another key there. Without a shortcut, right-click a file
+and choose *Peek*.
 
-**Uninstall** from the same *Download New Services* dialog, or run `kpeek-servicemenu/uninstall.sh`.
+**Uninstall** from the same *Download New Services* dialog, or run `kpeek-servicemenu/uninstall.sh`. Either also
+removes the shortcut.
 
 ## Keys and mouse
 

@@ -73,6 +73,11 @@ SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
     <control>pointing</control>
   </supports>
   <releases>
+    <release version="1.0.7" date="2026-10-11">
+      <description>
+        <p>The installer sets the Meta+Space shortcut in Dolphin, unless another action already uses it. Uninstalling removes it.</p>
+      </description>
+    </release>
     <release version="1.0.6" date="2026-10-11">
       <description>
         <p>Markdown files with HTML images, such as the centred logos and screenshots of many READMEs, now show in full.</p>
