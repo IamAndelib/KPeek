@@ -19,8 +19,9 @@ finish-args:
   - --filesystem=host:ro
   # Dolphin's thumbnails, shown instantly while previews load.
   - --filesystem=xdg-cache/thumbnails:ro
-  # The user's Plasma colour scheme and fonts.
-  - --filesystem=xdg-config/kdeglobals:ro
+  # The KDE runtime grants xdg-config/kdeglobals:ro, a bind mount that goes stale when Plasma replaces the file
+  # on a theme switch. main.cpp links the sandbox's kdeglobals to the host's instead, which host:ro shows live.
+  - --nofilesystem=xdg-config/kdeglobals
 cleanup:
   - /include
   - /lib/cmake

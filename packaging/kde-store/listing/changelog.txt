@@ -1,4 +1,5 @@
 1.0.8
+- The preview follows a light/dark theme switch while it is open.
 - Uninstalling also forgets whether Peek was hidden in Dolphin's context menu settings, so a reinstall shows it again.
 
 1.0.7

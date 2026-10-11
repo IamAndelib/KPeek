@@ -75,7 +75,10 @@ SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
   <releases>
     <release version="1.0.8" date="2026-10-11">
       <description>
-        <p>Uninstalling also forgets whether Peek was hidden in Dolphin's context menu settings, so a reinstall shows it again.</p>
+        <ul>
+          <li>The preview follows a light/dark theme switch while it is open.</li>
+          <li>Uninstalling also forgets whether Peek was hidden in Dolphin's context menu settings, so a reinstall shows it again.</li>
+        </ul>
       </description>
     </release>
     <release version="1.0.7" date="2026-10-11">

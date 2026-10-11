@@ -34,6 +34,8 @@ Read README.md first; it covers the features, the Dolphin integration (service m
 - Flatpak manifest (when written) needs: `--device=dri` (GPU and VA-API), the `codecs-extra` extension
   (H.264/HEVC), `--filesystem=host:ro` (sibling files), `--filesystem=xdg-cache/thumbnails:ro`.
   No `--share=network` and no host access (`org.freedesktop.Flatpak`). Don't bundle NVIDIA libraries.
+  `--nofilesystem=xdg-config/kdeglobals` revokes the KDE runtime's default: that single-file bind mount keeps the
+  inode from launch, and Plasma replaces kdeglobals on a theme switch. `main.cpp` symlinks it to the host's instead.
 - Paged documents (PDF, office, comics) share `src/qml/PageView.qml`. A new paged format is a C++ QML type with
   `pageCount`, `pageSize(i)`, `pageSource(i)` (an async image provider URL) and `failed`, like `ComicBook`.
 - Archives and comic books are read with libarchive (streamed headers, no in-memory tree); its one-thread

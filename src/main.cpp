@@ -20,6 +20,7 @@
 #include <QCommandLineParser>
 #include <QDeadlineTimer>
 #include <QDir>
+#include <QFile>
 #include <QIcon>
 #include <QImageReader>
 #include <QNetworkAccessManager>
@@ -84,6 +85,20 @@ QList<QUrl> urlsFromArguments(QCommandLineParser &parser, const QStringList &arg
     }
     return urls;
 }
+
+/// Inside the Flatpak, points the sandbox's kdeglobals at the host's (visible through host:ro), so the colour
+/// scheme follows a light/dark switch while a preview is open. A --filesystem=xdg-config/kdeglobals bind mount
+/// can't: it pins the file the host had at launch, and Plasma saves kdeglobals by replacing it.
+void linkHostKdeglobals()
+{
+    const QString hostConfig = qEnvironmentVariable("HOST_XDG_CONFIG_HOME");
+    const QString target = (hostConfig.isEmpty() ? QDir::homePath() + QStringLiteral("/.config") : hostConfig) + QStringLiteral("/kdeglobals");
+    const QString link = qEnvironmentVariable("XDG_CONFIG_HOME") + QStringLiteral("/kdeglobals");
+    if (QFile::symLinkTarget(link) != target) {
+        QFile::remove(link); // the empty placeholder an older version's bind mount left
+        QFile::link(target, link);
+    }
+}
 }
 
 int main(int argc, char *argv[])
@@ -96,6 +111,9 @@ int main(int argc, char *argv[])
 #endif
     if (const auto status = forwardToRunningInstance(argc, argv, KPEEK_APP_ID)) {
         return *status;
+    }
+    if (isFlatpak()) {
+        linkHostKdeglobals(); // before anything reads KConfig
     }
     // QApplication rather than QGuiApplication so Kirigami picks up the desktop style and platform theme.
     QApplication app(argc, argv); // sets the C locale from the environment
