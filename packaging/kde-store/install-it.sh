@@ -3,12 +3,25 @@
 # SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
 #
 # Run by Dolphin's "Get New Service Menus" (in a Konsole window) to install KPeek:
-# the latest KPeek Flatpak from GitHub, its KDE runtime from Flathub, and the "Peek" service menu.
-# Running it again updates KPeek.
+# this release's KPeek Flatpak from GitHub, its KDE runtime from Flathub, and the "Peek" service menu.
+# scripts/build-store-package.sh fills in the release's bundle and its checksum.
 set -eu
 
+tmp=
+finish() {
+    [ -z "$tmp" ] || rm -rf "$tmp"
+    # Dolphin runs this in a terminal window that closes as soon as it ends: keep the output readable,
+    # including an error.
+    if [ -t 0 ]; then
+        printf 'Press Enter to close this window.'
+        read -r _
+    fi
+}
+trap finish EXIT
+
 APP=io.github.iamandelib.kpeek
-BUNDLE_URL=https://github.com/IamAndelib/KPeek/releases/latest/download/kpeek.flatpak
+BUNDLE_URL=@BUNDLE_URL@
+BUNDLE_SHA256=@BUNDLE_SHA256@
 MENU_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/kio/servicemenus"
 HERE=$(cd "$(dirname "$0")" && pwd)
 
@@ -22,13 +35,16 @@ echo "==> Making sure Flathub is available (for the KDE runtime KPeek runs on)"
 flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
 tmp=$(mktemp -d)
-trap 'rm -rf "$tmp"' EXIT
-echo "==> Downloading the latest KPeek release"
+echo "==> Downloading KPeek"
 if command -v curl >/dev/null 2>&1; then
-    curl -fL --progress-bar -o "$tmp/kpeek.flatpak" "$BUNDLE_URL"
+    curl -fL --proto '=https' --progress-bar -o "$tmp/kpeek.flatpak" "$BUNDLE_URL"
 else
-    wget -O "$tmp/kpeek.flatpak" "$BUNDLE_URL"
+    wget --https-only -O "$tmp/kpeek.flatpak" "$BUNDLE_URL"
 fi
+echo "$BUNDLE_SHA256  $tmp/kpeek.flatpak" | sha256sum -c --quiet - || {
+    echo "The download doesn't match this release's checksum: not installing it."
+    exit 1
+}
 
 echo "==> Installing KPeek (the first time, this also downloads the KDE runtime, about 400 MB, unless another app already installed it)"
 flatpak install --user --reinstall -y "$tmp/kpeek.flatpak"
@@ -50,9 +66,3 @@ To use a keyboard shortcut (Dolphin 26.04 or later):
   3. Click the shortcut column and press Meta+Space, then Apply.
 
 EOF
-
-# Dolphin runs this in a terminal window that closes as soon as it ends: keep the steps above readable.
-if [ -t 0 ]; then
-    printf 'Press Enter to close this window.'
-    read -r _
-fi

@@ -5,7 +5,12 @@
 
 #include <QDebug>
 #include <QFile>
+#include <QFileInfo>
+#include <QRegularExpression>
 #include <QStringDecoder>
+#include <QTextBlock>
+#include <QTextCursor>
+#include <QTextDocument>
 
 QUrl TextLoader::url() const
 {
@@ -95,3 +100,59 @@ QString TextLoader::breakLongLines(const QString &text)
 }
 
 #include "moc_textloader.cpp"
+
+namespace
+{
+/// Parsing HTML loads stylesheets and background images right away: this document loads nothing.
+class InertDocument : public QTextDocument
+{
+protected:
+    QVariant loadResource(int, const QUrl &) override
+    {
+        return {};
+    }
+};
+}
+
+QString TextLoader::markdownToHtml(const QString &markdown, const QUrl &base)
+{
+    InertDocument document;
+    document.setMarkdown(markdown, QTextDocument::MarkdownDialectGitHub);
+
+    // Collected first, then changed from the end, so earlier positions stay valid.
+    QList<std::pair<int, QString>> images; // position, absolute file URL or empty to remove
+    for (QTextBlock block = document.begin(); block.isValid(); block = block.next()) {
+        for (auto it = block.begin(); !it.atEnd(); ++it) {
+            const QTextFragment fragment = it.fragment();
+            if (!fragment.charFormat().isImageFormat()) {
+                continue;
+            }
+            const QUrl url = base.resolved(QUrl(fragment.charFormat().toImageFormat().name()));
+            const QFileInfo info(url.toLocalFile());
+            const bool safe = url.isLocalFile() && info.isFile() && info.size() <= MaxMarkdownImageBytes;
+            for (int i = 0; i < fragment.length(); ++i) {
+                images.append({fragment.position() + i, safe ? QUrl::fromLocalFile(info.absoluteFilePath()).toString() : QString()});
+            }
+        }
+    }
+    for (auto it = images.crbegin(); it != images.crend(); ++it) {
+        QTextCursor cursor(&document);
+        cursor.setPosition(it->first);
+        cursor.setPosition(it->first + 1, QTextCursor::KeepAnchor);
+        if (it->second.isEmpty()) {
+            cursor.removeSelectedText();
+        } else {
+            QTextImageFormat format = cursor.charFormat().toImageFormat();
+            format.setName(it->second);
+            format.clearProperty(QTextFormat::ImageWidth); // its own size: <img width="100000"> would scale it up
+            format.clearProperty(QTextFormat::ImageHeight);
+            cursor.setCharFormat(format);
+        }
+    }
+
+    // The body's font would override the viewer's (and its zoom). Background images (HTML tables and cells
+    // can name one) would be loaded by the viewer: none.
+    static const QRegularExpression bodyStyle(QStringLiteral("<body style=\"[^\"]*\">"));
+    static const QRegularExpression background(QStringLiteral(" background=\"[^\"]*\""));
+    return document.toHtml().replace(bodyStyle, QStringLiteral("<body>")).remove(background);
+}

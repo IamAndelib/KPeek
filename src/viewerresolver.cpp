@@ -2,9 +2,9 @@
 // SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
 
 #include "viewerresolver.h"
+#include "imageformats.h"
 
 #include <QFile>
-#include <QImageReader>
 #include <QStringDecoder>
 
 namespace
@@ -125,14 +125,7 @@ QString ViewerResolver::viewerFor(const QMimeType &mime)
         return QStringLiteral("Info");
     }
 
-    static const QList<QByteArray> imageTypes = [] {
-        QList<QByteArray> types = QImageReader::supportedMimeTypes();
-        // kimageformats reads EPS by running Ghostscript: never on untrusted files, never on the host.
-        types.removeAll("image/x-eps");
-        types.removeAll("application/postscript");
-        return types;
-    }();
-    for (const QByteArray &type : imageTypes) {
+    for (const QByteArray &type : imageFormats().mimeTypes) {
         if (mime.inherits(QString::fromLatin1(type))) {
             return QStringLiteral("Image");
         }

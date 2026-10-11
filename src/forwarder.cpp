@@ -83,10 +83,11 @@ std::optional<int> forwardToRunningInstance(int argc, char **argv, const char *s
     // The launcher's activation token lets the compositor focus the already-running window.
     DBusMessageIter platformData;
     dbus_message_iter_open_container(&args, DBUS_TYPE_ARRAY, "{sv}", &platformData);
-    if (const char *token = std::getenv("XDG_ACTIVATION_TOKEN")) {
+    // libdbus aborts the process on a string that isn't valid UTF-8.
+    if (const char *token = std::getenv("XDG_ACTIVATION_TOKEN"); token && dbus_validate_utf8(token, nullptr)) {
         appendString(&platformData, "activation-token", token);
     }
-    if (const char *startupId = std::getenv("DESKTOP_STARTUP_ID")) {
+    if (const char *startupId = std::getenv("DESKTOP_STARTUP_ID"); startupId && dbus_validate_utf8(startupId, nullptr)) {
         appendString(&platformData, "desktop-startup-id", startupId);
     }
     dbus_message_iter_close_container(&args, &platformData);
@@ -96,7 +97,11 @@ std::optional<int> forwardToRunningInstance(int argc, char **argv, const char *s
     dbus_int32_t status = 0;
     if (!reply || !dbus_message_get_args(reply.get(), &error, DBUS_TYPE_INT32, &status, DBUS_TYPE_INVALID)) {
         dbus_error_free(&error);
-        return std::nullopt; // e.g. the instance is just quitting: become the preview instead
+        // A busy instance that is still there has the files: sending them again would toggle the preview shut.
+        if (dbus_bus_name_has_owner(connection.get(), serviceName, nullptr)) {
+            return 0;
+        }
+        return std::nullopt; // the instance was quitting: become the preview instead
     }
     return status;
 }

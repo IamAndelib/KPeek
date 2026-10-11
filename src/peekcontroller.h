@@ -74,6 +74,9 @@ public:
     bool isFolder() const;
     QString sizeText() const;
     qint64 fileSize() const;
+    /// What loading the current 3D model reads: the file plus, for glTF, the files it names (any path at all).
+    /// The largest possible value when one of those isn't a regular file (/dev/zero never ends).
+    Q_INVOKABLE qint64 modelBytes() const;
     QDateTime modified() const;
     int index() const;
     int count() const;
@@ -109,11 +112,7 @@ private:
 
     FileNavigator m_navigator;
     QFutureWatcher<FileNavigator::Siblings> m_siblingsWatcher;
-    struct FolderSize {
-        QString path;
-        QString text;
-    };
-    QFutureWatcher<FolderSize> m_folderSizeWatcher;
+    QFutureWatcher<QString> m_folderSizeWatcher; // the item count, as text
     QPointer<QQuickWindow> m_window;
     KWindowShadow m_shadow;
     bool m_showing = false;

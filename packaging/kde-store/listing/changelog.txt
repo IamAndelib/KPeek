@@ -1,3 +1,11 @@
+1.0.4: security and robustness
+- A Markdown file can no longer freeze KPeek or read devices through its images.
+- KPeek never runs Ghostscript, even on PostScript disguised as another file type.
+- 3D models count the files they reference before loading on their own.
+- Files under /usr and /etc show the system's own file, not the sandbox's.
+- The installer checks the download against the release's checksum.
+- Starts a little faster.
+
 1.0.3
 - Resizing from the top edge and top corners now works on Wayland too.
 

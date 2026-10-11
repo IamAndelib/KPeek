@@ -58,7 +58,7 @@ void PdfDocumentTest::testLayout()
 void PdfDocumentTest::testRenderStaysWithinBudget()
 {
     // However wide the request, a hostile page shape (2 × 200 inches) never renders past the pixel
-    // budget: a multi-GB image would take down the resident process. KPEEK_LOW_MEMORY=1 is set for
+    // budget: a multi-GB image would take down the process. KPEEK_LOW_MEMORY=1 is set for
     // this test, so the budget is 24 MP.
     QVERIFY(isLowMemorySystem());
     const QString path = writePdf(QStringLiteral("strip.pdf"), QSizeF(144, 14400), 1);

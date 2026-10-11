@@ -3,6 +3,7 @@
 
 #include "comicbook.h"
 #include "archivereader.h"
+#include "imageformats.h"
 #include "imageresponse.h"
 #include "naturalsort.h"
 #include "systeminfo.h"
@@ -14,7 +15,6 @@
 #include <QImageReader>
 #include <QScopeGuard>
 #include <QSemaphore>
-#include <QSet>
 #include <QtConcurrentRun>
 
 #include <algorithm>
@@ -39,14 +39,10 @@ QSemaphore s_pageSlots(2);
 /// Images that are pages: not macOS resource forks or other hidden files.
 bool isPage(const QString &path)
 {
-    static const QSet<QByteArray> formats = [] {
-        const QList<QByteArray> list = QImageReader::supportedImageFormats();
-        return QSet<QByteArray>(list.cbegin(), list.cend());
-    }();
     if (path.startsWith(QLatin1String("__MACOSX/")) || path.contains(QLatin1String("/.")) || path.startsWith(QLatin1Char('.'))) {
         return false;
     }
-    return formats.contains(QFileInfo(path).suffix().toLower().toLatin1());
+    return imageFormats().keys.contains(QFileInfo(path).suffix().toLower().toLatin1());
 }
 
 /// Reads up to @p limit bytes of the current entry's data; null if it can't be extracted.
@@ -66,13 +62,6 @@ QByteArray readData(archive *reader, qint64 limit)
         data.append(buffer, read);
     }
     return data;
-}
-
-/// libarchive reports recoverable problems (e.g. a name it can't convert) as warnings: keep going.
-bool nextHeader(archive *reader, archive_entry **entry)
-{
-    const int result = archive_read_next_header(reader, entry);
-    return result == ARCHIVE_OK || result == ARCHIVE_WARN;
 }
 }
 

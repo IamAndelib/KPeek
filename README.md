@@ -47,7 +47,8 @@ Plasma, GNOME, Xfce or a tiling window manager.
 **From Dolphin (recommended).** Open *Settings → Configure Dolphin… → Context Menu → Download New Services…*,
 search for **KPeek** and click *Install*. A terminal window shows the progress: it downloads KPeek, and the
 first time also the KDE runtime it runs on (a 400 MB download, shared with other KDE Flatpaks). Restart Dolphin
-afterwards. Installing it again later updates KPeek.
+afterwards. When a new version is out, the same dialog offers *Update*. The installer checks the download against
+the release's checksum.
 
 **By hand.** Download `kpeek-servicemenu-<version>.tar.gz` from the
 [latest release](https://github.com/IamAndelib/KPeek/releases/latest), then:

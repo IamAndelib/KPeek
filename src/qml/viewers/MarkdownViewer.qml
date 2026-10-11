@@ -57,9 +57,8 @@ Rectangle {
     Component {
         id: renderedView
         QQC2.TextArea {
-            text: loader.text
-            textFormat: TextEdit.MarkdownText
-            baseUrl: PeekController.url // resolves relative images and links
+            text: loader.markdownToHtml(loader.text, PeekController.url)
+            textFormat: TextEdit.RichText
             readOnly: true
             selectByMouse: true
             wrapMode: TextEdit.Wrap

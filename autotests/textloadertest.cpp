@@ -3,9 +3,12 @@
 
 #include "textloader.h"
 
+#include <QImage>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QTest>
+
+#include <sys/stat.h>
 
 class TextLoaderTest : public QObject
 {
@@ -18,6 +21,7 @@ private Q_SLOTS:
     void testLargeFile();
     void testUnreadable();
     void testBreakLongLines();
+    void testMarkdownImages();
 };
 
 void TextLoaderTest::testDecode_data()
@@ -82,6 +86,31 @@ void TextLoaderTest::testBreakLongLines()
     QCOMPARE(TextLoader::breakLongLines(mixed), QStringLiteral("ab\n") + QString(n, u'y') + u'\n' + QString(n, u'y') + u'\n' + QStringLiteral("yyy"));
 }
 
-QTEST_GUILESS_MAIN(TextLoaderTest)
+void TextLoaderTest::testMarkdownImages()
+{
+    QTemporaryDir dir;
+    QImage(4, 4, QImage::Format_RGB32).save(dir.filePath(QStringLiteral("pic.png")));
+    QVERIFY(mkfifo(QFile::encodeName(dir.filePath(QStringLiteral("pipe.png"))).constData(), 0600) == 0);
+    const QUrl base = QUrl::fromLocalFile(dir.filePath(QStringLiteral("README.md")));
+
+    // Qt drops HTML images, and everything after them, so those come last.
+    const QString html = TextLoader::markdownToHtml(QStringLiteral("# Title\n\n![a](pic.png) ![b](/dev/zero) ![c](pipe.png) ![d](missing.png) "
+                                                                   "![e](https://example.com/x.png)\n\nPress <kbd>Space</kbd>.\n\n"
+                                                                   "<table background=\"/dev/zero\"><tr><td background=\"/dev/zero\">t</td></tr></table>\n\n"
+                                                                   "<div style=\"background-image: url(/dev/zero)\">d</div>\n\n"
+                                                                   "<link rel=\"stylesheet\" href=\"/dev/zero\">\n\nInline <img src=\"/dev/zero\">"),
+                                                    base);
+    // Only the real, local picture is still an image, by its absolute path.
+    QCOMPARE(html.count(QLatin1String("<img ")), 1);
+    QVERIFY(html.contains(QLatin1String("<img src=\"") + QUrl::fromLocalFile(dir.filePath(QStringLiteral("pic.png"))).toString() + QLatin1Char('"')));
+    QVERIFY(!html.contains(QLatin1String("/dev/zero"))); // nor as a background or a stylesheet
+    QVERIFY(!html.contains(QLatin1String("pipe.png")));
+    QVERIFY(!html.contains(QLatin1String("example.com")));
+    QVERIFY(html.contains(QLatin1String("Space")) && !html.contains(QLatin1String("&lt;kbd"))); // harmless HTML still renders
+    QVERIFY(html.contains(QLatin1String(">t<")) && html.contains(QLatin1String(">d<")));
+    QVERIFY(!html.contains(QLatin1String("<body style"))); // the viewer's font and zoom apply
+}
+
+QTEST_MAIN(TextLoaderTest)
 
 #include "textloadertest.moc"

@@ -143,14 +143,14 @@ Rectangle {
     // Opening a large book or a document on a slow drive takes a moment.
     QQC2.BusyIndicator {
         anchors.centerIn: parent
-        running: root.document.pageCount === 0 && !root.document.failed && root.document.locked !== true
+        running: root.document.pageCount === 0 && !root.document.failed && !root.document.locked
     }
 
     Kirigami.PlaceholderMessage {
         anchors.centerIn: parent
         width: parent.width - Kirigami.Units.gridUnit * 4
-        visible: root.document.failed || root.document.locked === true
-        icon.name: root.document.locked === true ? "object-locked" : "dialog-error"
-        text: root.document.locked === true ? i18nc("@info", "This document is password-protected") : i18nc("@info", "This document could not be opened")
+        visible: root.document.failed || root.document.locked
+        icon.name: root.document.locked ? "object-locked" : "dialog-error"
+        text: root.document.locked ? i18nc("@info", "This document is password-protected") : i18nc("@info", "This document could not be opened")
     }
 }

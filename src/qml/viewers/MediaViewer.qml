@@ -161,7 +161,7 @@ Rectangle {
                 visible: player.error !== MediaPlayer.NoError
                 icon.name: "dialog-error"
                 text: i18nc("@info", "This file could not be played")
-                explanation: player.errorString
+                explanation: player.errorString.replace(/&/g, "&amp;").replace(/</g, "&lt;") // shown as rich text
             }
         }
 

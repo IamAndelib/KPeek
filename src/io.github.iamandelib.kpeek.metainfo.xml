@@ -73,6 +73,19 @@ SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
     <control>pointing</control>
   </supports>
   <releases>
+    <release version="1.0.4" date="2026-10-11">
+      <description>
+        <p>Security and robustness release.</p>
+        <ul>
+          <li>A Markdown file can no longer freeze KPeek or read devices through its images.</li>
+          <li>KPeek never runs Ghostscript, even on PostScript disguised as another file type.</li>
+          <li>3D models count the files they reference before loading on their own.</li>
+          <li>Files under /usr and /etc show the system's own file, not the sandbox's.</li>
+          <li>The installer checks the download against the release's checksum.</li>
+          <li>Starts a little faster.</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.0.3" date="2026-10-11">
       <description>
         <p>Resizing from the top edge and top corners now works on Wayland too.</p>

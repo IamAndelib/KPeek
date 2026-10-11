@@ -46,6 +46,15 @@ public:
     /// Inserts a line break after every MaxLineChars characters without one.
     static QString breakLongLines(const QString &text);
 
+    static constexpr qint64 MaxMarkdownImageBytes = 16 * 1024 * 1024;
+    /**
+     * Markdown as HTML that is safe to show. Qt's text engine reads every image a document names, whole and
+     * on the GUI thread: ![](/dev/zero) never ends. Only images that are regular local files up to
+     * MaxMarkdownImageBytes are kept (as absolute paths, at their own size; @p base resolves relative ones),
+     * and nothing else is loaded: no stylesheets, no background images.
+     */
+    Q_INVOKABLE static QString markdownToHtml(const QString &markdown, const QUrl &base);
+
 Q_SIGNALS:
     void urlChanged();
     void loaded();

@@ -110,7 +110,7 @@ Rectangle {
 
             Image {
                 anchors.fill: parent
-                visible: !root.baseReady && baseImage?.status !== Image.Error
+                visible: !root.baseReady && root.baseImage?.status !== Image.Error
                 source: PeekController.thumbnail
                 fillMode: Image.PreserveAspectFit
                 asynchronous: true
@@ -173,7 +173,7 @@ Rectangle {
 
     QQC2.BusyIndicator {
         anchors.centerIn: parent
-        running: baseImage?.status === Image.Loading && PeekController.thumbnail.toString() === ""
+        running: root.baseImage?.status === Image.Loading && PeekController.thumbnail.toString() === ""
     }
 
     // A file that can't be decoded here (e.g. a camera RAW format this system lacks a decoder for)
@@ -183,8 +183,8 @@ Rectangle {
         anchors.centerIn: parent
         width: Math.min(implicitWidth, parent.width - Kirigami.Units.gridUnit * 2)
         height: Math.min(implicitHeight, parent.height - Kirigami.Units.gridUnit * 2)
-        visible: baseImage?.status === Image.Error && status === Image.Ready
-        source: baseImage?.status === Image.Error ? PeekController.thumbnail : ""
+        visible: root.baseImage?.status === Image.Error && status === Image.Ready
+        source: root.baseImage?.status === Image.Error ? PeekController.thumbnail : ""
         fillMode: Image.PreserveAspectFit
         asynchronous: true
         smooth: true
@@ -193,7 +193,7 @@ Rectangle {
     Kirigami.PlaceholderMessage {
         anchors.centerIn: parent
         width: parent.width - Kirigami.Units.gridUnit * 4
-        visible: baseImage?.status === Image.Error && !fallback.visible && fallback.status !== Image.Loading
+        visible: root.baseImage?.status === Image.Error && !fallback.visible && fallback.status !== Image.Loading
         icon.name: "image-missing"
         text: i18nc("@info", "This image could not be displayed")
     }

@@ -13,29 +13,14 @@
 
 void FileNavigator::setSelection(const QList<QUrl> &urls)
 {
-    m_selection = urls;
-    m_items.clear();
-    m_index = -1;
+    m_selection = m_items = urls;
+    m_index = urls.isEmpty() ? -1 : 0;
     m_siblingsNeeded = false;
-
-    if (urls.isEmpty()) {
+    // One file: its whole folder.
+    if (urls.size() != 1 || !urls.first().isLocalFile()) {
         return;
     }
-
-    if (urls.size() > 1) {
-        m_items = urls;
-        m_index = 0;
-        return;
-    }
-
-    const QUrl url = urls.first();
-    m_items = {url};
-    m_index = 0;
-    m_siblingsNeeded = false;
-    if (!url.isLocalFile()) {
-        return;
-    }
-    const QFileInfo dir(QFileInfo(url.toLocalFile()).absolutePath());
+    const QFileInfo dir(QFileInfo(urls.first().toLocalFile()).absolutePath());
     if (dir.absoluteFilePath() == m_cache.dir && dir.lastModified() == m_cache.dirModified) {
         setSiblings(m_cache);
     } else {
@@ -50,9 +35,6 @@ bool FileNavigator::siblingsNeeded() const
 
 void FileNavigator::setSiblings(const Siblings &siblings)
 {
-    if (m_selection.isEmpty()) {
-        return; // released while the listing ran
-    }
     m_cache = siblings;
     m_siblingsNeeded = false;
     if (m_selection.size() != 1) {

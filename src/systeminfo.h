@@ -44,3 +44,10 @@ inline void ensureUtf8Locale()
         setlocale(LC_CTYPE, "C.UTF-8");
     }
 }
+
+/// Whether KPeek runs as a Flatpak.
+inline bool isFlatpak()
+{
+    static const bool flatpak = access("/.flatpak-info", F_OK) == 0;
+    return flatpak;
+}

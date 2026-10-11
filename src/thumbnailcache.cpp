@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
 
 #include "thumbnailcache.h"
+#include "systeminfo.h"
 
 #include <QCryptographicHash>
 #include <QDir>
@@ -43,8 +44,9 @@ QByteArray pngText(const QString &path, const QByteArray &key)
 QString defaultCacheRoot()
 {
     // Inside a Flatpak, XDG_CACHE_HOME points into the sandbox; the shared cache is the host's.
-    if (QFileInfo::exists(QStringLiteral("/.flatpak-info"))) {
-        return QDir::homePath() + QStringLiteral("/.cache/thumbnails");
+    if (isFlatpak()) {
+        const QString hostCache = qEnvironmentVariable("HOST_XDG_CACHE_HOME");
+        return (hostCache.isEmpty() ? QDir::homePath() + QStringLiteral("/.cache") : hostCache) + QStringLiteral("/thumbnails");
     }
     return QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation) + QStringLiteral("/thumbnails");
 }
@@ -52,7 +54,11 @@ QString defaultCacheRoot()
 
 QString ThumbnailCache::fileNameFor(const QString &path)
 {
-    const QByteArray uri = QUrl::fromLocalFile(QFileInfo(path).absoluteFilePath()).toEncoded();
+    QString absolute = QFileInfo(path).absoluteFilePath();
+    if (absolute.startsWith(QLatin1String("/run/host/")) && isFlatpak()) {
+        absolute.remove(0, 9); // Dolphin knows the host's /usr/… and /etc/… by their own names (see main.cpp)
+    }
+    const QByteArray uri = QUrl::fromLocalFile(absolute).toEncoded();
     return QString::fromLatin1(QCryptographicHash::hash(uri, QCryptographicHash::Md5).toHex()) + QStringLiteral(".png");
 }
 

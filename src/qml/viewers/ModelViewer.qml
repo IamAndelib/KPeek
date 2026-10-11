@@ -23,7 +23,7 @@ Rectangle {
 
     property real zoom: 1.0
     readonly property bool hardware: GraphicsInfo.api !== GraphicsInfo.Software
-    property bool loadRequested: PeekController.fileSize <= (PeekController.lowMemory ? 4 : 10) * 1024 * 1024
+    property bool loadRequested: PeekController.modelBytes() <= (PeekController.lowMemory ? 4 : 10) * 1024 * 1024
 
     color: Kirigami.Theme.backgroundColor
 
@@ -130,7 +130,7 @@ Rectangle {
                 visible: model.status === RuntimeLoader.Error
                 icon.name: "dialog-error"
                 text: i18nc("@info", "This model could not be loaded")
-                explanation: model.errorString
+                explanation: model.errorString.replace(/&/g, "&amp;").replace(/</g, "&lt;") // shown as rich text
             }
         }
     }

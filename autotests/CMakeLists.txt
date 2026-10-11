@@ -29,10 +29,15 @@ ecm_add_test(comicbooktest.cpp ../src/comicbook.cpp
     LINK_LIBRARIES Qt6::Test Qt6::Quick Qt6::Concurrent LibArchive::LibArchive)
 target_include_directories(comicbooktest PRIVATE ../src)
 
+ecm_add_test(execguardtest.cpp ../src/execguard.cpp
+    TEST_NAME execguardtest
+    LINK_LIBRARIES Qt6::Test Qt6::Gui)
+
 ecm_add_test(textloadertest.cpp ../src/textloader.cpp
     TEST_NAME textloadertest
-    LINK_LIBRARIES Qt6::Test Qt6::Qml)
+    LINK_LIBRARIES Qt6::Test Qt6::Qml Qt6::Gui)
 target_include_directories(textloadertest PRIVATE ../src)
+set_tests_properties(textloadertest PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 
 # QML tests (autotests/qml/tst_*.qml), offscreen.
 find_package(Qt6QuickTest ${QT_MIN_VERSION} REQUIRED)

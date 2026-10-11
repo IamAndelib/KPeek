@@ -68,7 +68,15 @@ QList<QUrl> urlsFromArguments(QCommandLineParser &parser, const QStringList &arg
     QList<QUrl> urls;
     const QStringList positional = parser.positionalArguments();
     for (const QString &argument : positional) {
-        urls.append(QUrl::fromUserInput(argument, workingDirectory, QUrl::AssumeLocalFile));
+        QUrl url = QUrl::fromUserInput(argument, workingDirectory, QUrl::AssumeLocalFile);
+        // The Flatpak runtime has its own /usr and /etc; the host's are under /run/host.
+        if (isFlatpak() && url.isLocalFile()) {
+            const QString path = QDir::cleanPath(url.toLocalFile());
+            if (path.startsWith(QLatin1String("/usr/")) || path.startsWith(QLatin1String("/etc/"))) {
+                url = QUrl::fromLocalFile(QStringLiteral("/run/host") + path);
+            }
+        }
+        urls.append(url);
     }
     return urls;
 }

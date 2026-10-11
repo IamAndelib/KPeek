@@ -6,6 +6,7 @@ add_library(kpeekcore STATIC
     filenavigator.cpp filenavigator.h
     viewerresolver.cpp viewerresolver.h
     thumbnailcache.cpp thumbnailcache.h
+    imageformats.h
     naturalsort.h
     systeminfo.h
 )
@@ -14,6 +15,7 @@ target_link_libraries(kpeekcore PUBLIC Qt6::Core Qt6::Gui)
 
 add_executable(kpeek
     main.cpp
+    execguard.cpp # in the executable itself: nothing calls it, so a static library would drop it
     peekcontroller.cpp peekcontroller.h
     textloader.cpp textloader.h
     pdfdocument.cpp pdfdocument.h

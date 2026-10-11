@@ -4,6 +4,7 @@
 #include "officeconverter.h"
 #include "archivereader.h"
 #include "comicbook.h"
+#include "systeminfo.h"
 #include "workerpool.h"
 
 #include <QCoreApplication>
@@ -18,6 +19,9 @@
 #include <QTimer>
 #include <QtConcurrentRun>
 
+#include <csignal>
+#include <unistd.h>
+
 using namespace std::chrono_literals;
 
 namespace
@@ -31,11 +35,6 @@ QString cacheRoot()
     return QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + QStringLiteral("/office");
 }
 
-bool isSandboxed()
-{
-    return QFileInfo::exists(QStringLiteral("/.flatpak-info"));
-}
-
 /// The preview image that ODF and most OOXML files carry (a picture of the first page).
 QString embeddedPreviewEntry(const QString &path)
 {
@@ -46,7 +45,7 @@ QString embeddedPreviewEntry(const QString &path)
     const ArchivePtr reader = openArchive(path);
     archive_entry *entry = nullptr;
     // Zip headers are found by seeking, so this costs milliseconds even for large documents.
-    for (int i = 0; reader && i < 1000 && archive_read_next_header(reader.get(), &entry) == ARCHIVE_OK; ++i) {
+    for (int i = 0; reader && i < 1000 && nextHeader(reader.get(), &entry); ++i) {
         const QString name = entryPath(entry);
         if (candidates.contains(name)) {
             return name;
@@ -103,15 +102,6 @@ public:
         return m_commandKnown && m_command.isEmpty();
     }
 
-    /// Looks for LibreOffice again (in the background): it may have been installed since.
-    void probeAgain()
-    {
-        if (m_commandKnown && !isSandboxed()) {
-            m_commandKnown = false;
-            probe();
-        }
-    }
-
 Q_SIGNALS:
     void finished(const QString &pdfPath, OfficeConverter::Status status);
 
@@ -133,8 +123,10 @@ private:
             m_quitting = true;
             m_pending.clear();
             if (m_process) {
-                m_process->terminate();
-                m_process->waitForFinished(3000);
+                signalGroup(m_process, SIGTERM);
+                if (!m_process->waitForFinished(3000)) {
+                    signalGroup(m_process, SIGKILL);
+                }
             }
         });
     }
@@ -146,7 +138,7 @@ private:
         connect(watcher, &QFutureWatcher<QStringList>::finished, this, [this, watcher] {
             m_command = watcher->result();
             m_commandKnown = true;
-            if (m_command.isEmpty() && !isSandboxed()) {
+            if (m_command.isEmpty() && !isFlatpak()) {
                 qWarning() << "LibreOffice not found: office documents show their embedded preview only";
             }
             watcher->deleteLater();
@@ -178,6 +170,11 @@ private:
 
         m_running = job.pdfPath;
         m_process = new QProcess(this);
+        // Its own process group: soffice is a script whose LibreOffice runs as a child, and stopping
+        // only the script would leave that child holding the profile, failing every later conversion.
+        m_process->setChildProcessModifier([] {
+            ::setsid();
+        });
         m_process->setProgram(m_command.first());
         m_process->setArguments(m_command.mid(1)
                                 + QStringList{QStringLiteral("-env:UserInstallation=") + profile,
@@ -207,9 +204,22 @@ private:
             }
         });
         // A wedged LibreOffice may ignore SIGTERM; it must not block every later conversion.
-        QTimer::singleShot(ConversionTimeout, m_process, &QProcess::terminate);
-        QTimer::singleShot(ConversionTimeout + 5s, m_process, &QProcess::kill);
+        // Each timer signals its own process: by the time one fires, the next conversion may be running.
+        QTimer::singleShot(ConversionTimeout, m_process, [process = m_process] {
+            signalGroup(process, SIGTERM);
+        });
+        QTimer::singleShot(ConversionTimeout + 5s, m_process, [process = m_process] {
+            signalGroup(process, SIGKILL);
+        });
         m_process->start();
+    }
+
+    /// Signals LibreOffice's whole process group, while it runs.
+    static void signalGroup(QProcess *process, int signal)
+    {
+        if (process->processId() > 0) {
+            ::kill(-pid_t(process->processId()), signal);
+        }
     }
 
     void done(const QString &pdfPath, OfficeConverter::Status status)
@@ -232,22 +242,27 @@ private:
 
 QStringList OfficeConverter::sofficeCommand()
 {
-    if (isSandboxed()) {
-        // Reaching the host's LibreOffice would need a permission that lets the app run anything on
-        // the host, and every document browsed past would be parsed outside the sandbox. The Flatpak
-        // shows the document's own preview image instead.
+    if (isFlatpak()) {
         return {};
     }
-
+    // LibreOffice reads documents nobody vouched for, and those can link remote images and data:
+    // it runs without network access (in its own network namespace), or not at all.
     for (const QString &binary : {QStringLiteral("soffice"), QStringLiteral("libreoffice")}) {
         const QString path = QStandardPaths::findExecutable(binary);
-        if (!path.isEmpty()) {
-            return {path};
+        if (path.isEmpty()) {
+            continue;
         }
+        const QString unshare = QStandardPaths::findExecutable(QStringLiteral("unshare"));
+        const QStringList offline = {unshare, QStringLiteral("--map-root-user"), QStringLiteral("--net")};
+        if (!unshare.isEmpty() && runsSuccessfully(offline + QStringList{QStringLiteral("true")})) {
+            return offline + QStringList{path};
+        }
+        qWarning() << "LibreOffice can't be run without network access here (no unprivileged user namespaces)";
+        break;
     }
     const QString flatpak = QStandardPaths::findExecutable(QStringLiteral("flatpak"));
     if (!flatpak.isEmpty() && runsSuccessfully({flatpak, QStringLiteral("info"), FlathubLibreOffice})) {
-        return {flatpak, QStringLiteral("run"), QStringLiteral("--command=soffice"), FlathubLibreOffice};
+        return {flatpak, QStringLiteral("run"), QStringLiteral("--unshare=network"), QStringLiteral("--command=soffice"), FlathubLibreOffice};
     }
     return {};
 }
@@ -303,6 +318,14 @@ void OfficeConverter::setSource(const QUrl &source)
     }
     const QString entry = embeddedPreviewEntry(info.absoluteFilePath());
     m_embeddedPreview = entry.isEmpty() ? QString() : ArchiveImageProvider::source(info.absoluteFilePath(), info.lastModified().toMSecsSinceEpoch(), entry);
+    if (isFlatpak()) {
+        // Reaching the host's LibreOffice would need a permission that lets the app run anything on
+        // the host, and every document browsed past would be parsed outside the sandbox. The Flatpak
+        // shows the document's own preview image instead.
+        m_pdfPath.clear();
+        setStatus(Unavailable);
+        return;
+    }
 
     const QByteArray key =
         info.absoluteFilePath().toUtf8() + '\n' + QByteArray::number(info.size()) + '\n' + QByteArray::number(info.lastModified().toMSecsSinceEpoch());
@@ -317,7 +340,6 @@ void OfficeConverter::setSource(const QUrl &source)
     auto *queue = ConversionQueue::instance();
     if (queue->isUnavailable()) {
         setStatus(Unavailable);
-        queue->probeAgain(); // for the next document, in case LibreOffice has been installed meanwhile
         return;
     }
     setStatus(Converting);
@@ -336,7 +358,7 @@ QString OfficeConverter::embeddedPreview() const
 
 bool OfficeConverter::sandboxed() const
 {
-    return isSandboxed();
+    return isFlatpak();
 }
 
 OfficeConverter::Status OfficeConverter::status() const

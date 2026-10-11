@@ -56,3 +56,10 @@ inline QString entryPath(archive_entry *entry)
     }
     return path;
 }
+
+/// The next entry's header. libarchive reports recoverable problems (e.g. a name it can't convert) as warnings: keep going.
+inline bool nextHeader(archive *reader, archive_entry **entry)
+{
+    const int result = archive_read_next_header(reader, entry);
+    return result == ARCHIVE_OK || result == ARCHIVE_WARN;
+}

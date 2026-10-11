@@ -9,8 +9,8 @@ path is given. For later versions, see `RELEASING.md` in the repository root.
 
 ## Before you start
 
-Download `kpeek-servicemenu-1.0.3.tar.gz` from the
-[GitHub release](https://github.com/IamAndelib/KPeek/releases/tag/v1.0.3). It is the file Dolphin downloads
+Download `kpeek-servicemenu-1.0.4.tar.gz` from the
+[GitHub release](https://github.com/IamAndelib/KPeek/releases/tag/v1.0.4). It is the file Dolphin downloads
 and installs.
 
 ## The form
@@ -21,7 +21,7 @@ Open [store.kde.org/product/add](https://store.kde.org/product/add) (logged in a
 |---|---|
 | Category | **Dolphin Service Menus** |
 | Product name | `KPeek` |
-| Version | `1.0.3` |
+| Version | `1.0.4` |
 | Description | everything below the line in `description.md` |
 | Tags | `original-product, kde, dolphin, servicemenu, quicklook, preview, flatpak, linux, gplv2` |
 | License | GPLv2 or later (`GPL-2.0-or-later`) |
@@ -34,8 +34,8 @@ Open [store.kde.org/product/add](https://store.kde.org/product/add) (logged in a
 
 | Field | Value |
 |---|---|
-| File | `kpeek-servicemenu-1.0.3.tar.gz` |
-| Version | `1.0.3` |
+| File | `kpeek-servicemenu-1.0.4.tar.gz` |
+| Version | `1.0.4` |
 | Description | `Install from Dolphin: Configure Dolphin → Context Menu → Download New Services` |
 
 Publish.

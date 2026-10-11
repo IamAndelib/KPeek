@@ -19,11 +19,15 @@
 #include <QDirIterator>
 #include <QFileInfo>
 #include <QImageReader>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QMimeDatabase>
 #include <QOpenGLContext>
 #include <QOpenGLFunctions>
 #include <QQuickWindow>
 #include <QtConcurrentRun>
+#include <QtEndian>
 
 #include <cmath>
 
@@ -75,10 +79,10 @@ PeekController::PeekController(QObject *parent)
         m_navigator.setSiblings(m_siblingsWatcher.future().takeResult());
         Q_EMIT positionChanged();
     });
-    connect(&m_folderSizeWatcher, &QFutureWatcher<FolderSize>::finished, this, [this] {
-        const FolderSize size = m_folderSizeWatcher.future().takeResult();
-        if (m_isFolder && size.path == QFileInfo(url().toLocalFile()).absoluteFilePath()) { // not a stale count
-            m_sizeText = size.text;
+    // A new count replaces the watched one, so only the current folder's is ever reported.
+    connect(&m_folderSizeWatcher, &QFutureWatcher<QString>::finished, this, [this] {
+        if (m_isFolder) {
+            m_sizeText = m_folderSizeWatcher.future().takeResult();
             Q_EMIT sizeTextChanged();
         }
     });
@@ -172,7 +176,8 @@ void PeekController::close()
 
 void PeekController::openExternally()
 {
-    if (url().isEmpty()) {
+    // Opening a FIFO or device to hand it over (the Flatpak's portal does) would block forever.
+    if (url().isEmpty() || (url().isLocalFile() && !QFileInfo(url().toLocalFile()).isFile() && !QFileInfo(url().toLocalFile()).isDir())) {
         return;
     }
     // Keep the preview when nothing could open it, rather than leave the user with nothing.
@@ -239,13 +244,13 @@ void PeekController::updateCurrent()
         m_sizeText = QStringLiteral("…");
         m_folderSizeWatcher.setFuture(QtConcurrent::run(workerPool(), [path = info.absoluteFilePath()] {
             if (!QFileInfo(path).isReadable()) {
-                return FolderSize{path, i18nc("@info folder contents", "Not readable")};
+                return i18nc("@info folder contents", "Not readable");
             }
             int entries = 0;
             for (QDirIterator it(path, QDir::AllEntries | QDir::NoDotAndDotDot | QDir::Hidden | QDir::System); it.hasNext(); it.next()) {
                 ++entries;
             }
-            return FolderSize{path, i18ncp("@info folder contents", "%1 item", "%1 items", entries)};
+            return i18ncp("@info folder contents", "%1 item", "%1 items", entries);
         }));
     } else {
         m_sizeText = current.isLocalFile() ? KFormat().formatByteSize(info.size()) : QString();
@@ -344,6 +349,41 @@ bool PeekController::lowMemory() const
 QUrl PeekController::thumbnail() const
 {
     return m_thumbnail;
+}
+
+qint64 PeekController::modelBytes() const
+{
+    const QFileInfo info(url().toLocalFile());
+    qint64 total = info.size();
+    // Big files load on request anyway; this only reads small glTF files.
+    const QMimeType mime = QMimeDatabase().mimeTypeForFile(info);
+    const bool binary = mime.inherits(QStringLiteral("model/gltf-binary"));
+    QFile file(info.absoluteFilePath());
+    if (total > 16 * 1024 * 1024 || (!binary && !mime.inherits(QStringLiteral("model/gltf+json"))) || !file.open(QIODevice::ReadOnly)) {
+        return total;
+    }
+    QByteArray json = file.readAll();
+    if (binary) {
+        // GLB: a 12-byte header, then the JSON chunk (its length, "JSON", the JSON).
+        const auto chunkLength = json.size() >= 20 ? qFromLittleEndian<quint32>(json.constData() + 12) : 0;
+        json = json.mid(20, chunkLength);
+    }
+    const QJsonObject gltf = QJsonDocument::fromJson(json).object();
+    for (const QLatin1String key : {QLatin1String("buffers"), QLatin1String("images")}) {
+        const QJsonArray array = gltf.value(key).toArray();
+        for (const QJsonValue &value : array) {
+            const QString uri = value.toObject().value(QLatin1String("uri")).toString();
+            if (uri.isEmpty() || uri.startsWith(QLatin1String("data:"))) {
+                continue;
+            }
+            const QFileInfo referenced(info.dir(), QUrl::fromPercentEncoding(uri.toUtf8()));
+            if (!referenced.isFile()) {
+                return std::numeric_limits<qint64>::max();
+            }
+            total += referenced.size();
+        }
+    }
+    return total;
 }
 
 #include "moc_peekcontroller.cpp"

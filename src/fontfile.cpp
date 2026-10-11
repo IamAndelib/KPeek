@@ -3,6 +3,8 @@
 
 #include "fontfile.h"
 
+#include <QDebug>
+#include <QFileInfo>
 #include <QFontDatabase>
 #include <QRawFont>
 
@@ -34,6 +36,12 @@ void FontFile::setUrl(const QUrl &url)
     m_font = {};
 
     const QString path = url.toLocalFile();
+    // Qt reads a font file whole, on the GUI thread; real fonts, even CJK collections, are far smaller.
+    if (QFileInfo(path).size() > 256 * 1024 * 1024) {
+        qWarning() << "Not loading a font file this large:" << path;
+        Q_EMIT loaded();
+        return;
+    }
     m_id = QFontDatabase::addApplicationFont(path);
     const QStringList families = m_id >= 0 ? QFontDatabase::applicationFontFamilies(m_id) : QStringList();
     if (!families.isEmpty()) {

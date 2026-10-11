@@ -2,7 +2,9 @@
 // SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
 
 #include "viewerresolver.h"
+#include "imageformats.h"
 
+#include <QImageReader>
 #include <QMimeDatabase>
 #include <QTemporaryDir>
 #include <QTest>
@@ -18,6 +20,7 @@ private Q_SLOTS:
     void testViewer();
     void testLooksLikeText();
     void testViewerForFile();
+    void testImageFormats();
 };
 
 void ViewerResolverTest::testViewer_data()
@@ -77,7 +80,7 @@ void ViewerResolverTest::testLooksLikeText()
 void ViewerResolverTest::testViewerForFile()
 {
     // A FIFO named like a viewable file must never reach a viewer: reading it would block forever,
-    // hanging the resident process and every later preview.
+    // hanging the preview.
     {
         QTemporaryDir fifoDir;
         for (const char *name : {"pipe.png", "pipe.txt", "pipe.pdf"}) {
@@ -106,6 +109,20 @@ void ViewerResolverTest::testViewerForFile()
     const QByteArray fifo = QFile::encodeName(dir.filePath(QStringLiteral("pipe")));
     QCOMPARE(::mkfifo(fifo.constData(), 0600), 0);
     QCOMPARE(ViewerResolver::viewerForFile(QFileInfo(QString::fromLocal8Bit(fifo)), unknown), QStringLiteral("Info"));
+}
+
+void ViewerResolverTest::testImageFormats()
+{
+    // Read from plugin metadata without loading the plugins; must match what QImageReader loads them to report.
+    auto withoutEps = [](const QList<QByteArray> &list, std::initializer_list<QByteArray> eps) {
+        QSet<QByteArray> set(list.cbegin(), list.cend());
+        for (const QByteArray &e : eps) {
+            set.remove(e);
+        }
+        return set;
+    };
+    QCOMPARE(imageFormats().mimeTypes, withoutEps(QImageReader::supportedMimeTypes(), {"image/x-eps", "application/postscript"}));
+    QCOMPARE(imageFormats().keys, withoutEps(QImageReader::supportedImageFormats(), {"eps", "epsf", "epsi"}));
 }
 
 QTEST_GUILESS_MAIN(ViewerResolverTest)

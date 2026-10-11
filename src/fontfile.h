@@ -10,7 +10,7 @@
 
 /**
  * A font file registered with the application for as long as it is previewed.
- * QML's FontLoader never unregisters fonts, so a resident process browsing a fonts folder
+ * QML's FontLoader never unregisters fonts, so browsing a fonts folder in one preview
  * would keep every one of them loaded.
  */
 class FontFile : public QObject

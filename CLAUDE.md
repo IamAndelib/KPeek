@@ -8,10 +8,16 @@ Read README.md first; it covers the features, the Dolphin integration (service m
 - Viewers are picked by MIME type (`src/viewerresolver.cpp`), never by file extension.
 - Viewers must work inside the Flatpak KDE runtime: no host KParts or host binaries. Native builds convert
   office documents with LibreOffice; the Flatpak never reaches the host (that permission would let any
-  decoder bug escape the sandbox) and shows the document's embedded preview image instead.
+  decoder bug escape the sandbox) and shows the document's embedded preview image instead. It reads the
+  host's `/usr` and `/etc` under `/run/host` (`main.cpp` maps them).
 - Files are untrusted: render file-derived strings (names, tags, entry paths) with `Text.PlainText`; the
   QML engine refuses network access (`LocalOnlyNetworkAccessManager` in `main.cpp`); never run external
-  programs on file content (libarchive filters are listed explicitly in `src/archivereader.h`, EPS is excluded).
+  programs on file content (libarchive filters are listed explicitly in `src/archivereader.h`, EPS is excluded and
+  `src/execguard.cpp` refuses to execute Ghostscript at all: Qt detects image formats from content, past any MIME check).
+  Anything a file *references* is untrusted too: Markdown goes through `TextLoader::markdownToHtml()` (Qt's text
+  engine reads every image a document names, whole, on the GUI thread: `![](/dev/zero)` never ends), glTF counts
+  its referenced files before auto-loading (`PeekController::modelBytes()`), and native LibreOffice runs
+  without network access (`unshare --map-root-user --net`, or `flatpak run --unshare=network`).
 - Shared interaction lives in `src/qml/ViewerInput.qml` (Ctrl+wheel zoom, Ctrl+drag, scroll keys) and the
   header zoom controls in `Main.qml`. Viewers take part by exposing `zoom` and `scrollTarget` (optionally `dragPans`, `maxZoom`); don't add
   per-viewer controls for these. The plain wheel only scrolls (never switches files: documents need it).

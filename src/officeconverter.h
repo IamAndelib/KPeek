@@ -9,13 +9,13 @@
 
 /**
  * Shows office documents by converting them to PDF with LibreOffice, the same approach
- * GNOME Sushi takes. Uses a native LibreOffice or the Flathub one, reaching the host's
- * through flatpak-spawn when KPeek itself runs as a Flatpak.
+ * GNOME Sushi takes, in native builds (a native LibreOffice or the Flathub one). The Flatpak
+ * never converts: it shows the preview picture stored in the document.
  *
  * Conversions run one at a time in a shared queue and are cached by path, size and
- * modification time. A started conversion keeps running when the user moves on, so coming
- * back is instant and LibreOffice is never killed halfway (which would leave it orphaned);
- * queued ones nobody waits for any more are dropped.
+ * modification time. A started conversion keeps running while the user browses on, so coming
+ * back is instant; queued ones nobody waits for any more are dropped, and closing the preview
+ * ends a running one cleanly.
  */
 class OfficeConverter : public QObject
 {
