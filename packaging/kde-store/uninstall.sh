@@ -12,6 +12,7 @@ MENU="${XDG_DATA_HOME:-$HOME/.local/share}/kio/servicemenus/kpeek.desktop"
 
 rm -f "$MENU"
 remove_shortcut
+forget_menu_choice
 echo "Removed the \"Peek\" service menu and its shortcut."
 
 if flatpak info --user "$APP" >/dev/null 2>&1; then

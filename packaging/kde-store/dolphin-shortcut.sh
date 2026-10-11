@@ -7,10 +7,12 @@
 #   <ActionProperties scheme="Default">
 #     <Action name="servicemenu_kpeek.desktop::peek" shortcut="Meta+Space"/>
 # Only sh and awk are certain to be on the host, so this edits lines, not XML.
+# uninstall.sh also uses forget_menu_choice (Dolphin's kservicemenurc) from here.
 
 PEEK_ACTION='servicemenu_kpeek.desktop::peek'
 PEEK_SHORTCUT='Meta+Space'
 DOLPHIN_RC="${XDG_DATA_HOME:-$HOME/.local/share}/kxmlgui5/dolphin/dolphinui.rc"
+SERVICEMENU_RC="${XDG_CONFIG_HOME:-$HOME/.config}/kservicemenurc"
 
 # Binds Peek to Meta+Space in $1 (default: Dolphin's file). Returns 0 when it did, 1 when Peek already has a
 # shortcut (the user's choice, or an earlier install), 2 when another action has Meta+Space, 3 on an error.
@@ -45,4 +47,14 @@ remove_shortcut() {
     grep -q "name=\"$PEEK_ACTION\"" "$rc" 2>/dev/null || return 0
     grep -v "name=\"$PEEK_ACTION\"" "$rc" >"$rc.tmp"
     mv "$rc.tmp" "$rc"
+}
+
+# Forgets whether Peek is shown in Dolphin's context menu (`peek=` under [Show] in $1, default kservicemenurc), so a
+# later install starts shown, Dolphin's default, instead of inheriting an old "hidden".
+forget_menu_choice() {
+    rc=${1:-$SERVICEMENU_RC}
+    grep -q '^peek=' "$rc" 2>/dev/null || return 0
+    awk '/^\[/ { show = ($0 == "[Show]") } !(show && /^peek=/)' "$rc" >"$rc.tmp" || { rm -f "$rc.tmp"; return 1; }
+    cat "$rc.tmp" >"$rc" # keeps the file's permissions (KConfig makes it private)
+    rm -f "$rc.tmp"
 }

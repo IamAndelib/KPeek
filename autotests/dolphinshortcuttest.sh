@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: BSD-2-Clause
 # SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
 #
-# Tests packaging/kde-store/dolphin-shortcut.sh, which binds Peek to Meta+Space in Dolphin's dolphinui.rc.
+# Tests packaging/kde-store/dolphin-shortcut.sh, which binds Peek to Meta+Space in Dolphin's dolphinui.rc
+# and, on uninstall, forgets whether Peek was hidden from the context menu.
 set -u
 
 # shellcheck source=packaging/kde-store/dolphin-shortcut.sh
@@ -79,5 +80,16 @@ check "similar key is free" 0 "$dir/similar.rc" ""
 
 printf '<gui name="dolphin" version="49">\n' >"$dir/broken.rc"
 check "truncated file" 3 "$dir/broken.rc" '<gui name="dolphin" version="49">'
+
+printf '[Show]\nfilelight=true\npeek=false\n\n[Other]\npeek=false\n' >"$dir/kservicemenurc"
+chmod 600 "$dir/kservicemenurc"
+forget_menu_choice "$dir/kservicemenurc"
+if [ "$(cat "$dir/kservicemenurc")" = "$(printf '[Show]\nfilelight=true\n\n[Other]\npeek=false')" ] &&
+    [ -n "$(find "$dir/kservicemenurc" -perm 600)" ]; then
+    echo "PASS forget menu choice"
+else
+    echo "FAIL forget menu choice"; ls -l "$dir/kservicemenurc"; cat "$dir/kservicemenurc"; failed=1
+fi
+forget_menu_choice "$dir/missing" && echo "PASS forget menu choice, no file" || { echo "FAIL forget, no file"; failed=1; }
 
 exit $failed

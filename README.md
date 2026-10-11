@@ -69,7 +69,7 @@ switches the keyboard layout before Dolphin sees it: pick another key there. Wit
 and choose *Peek*.
 
 **Uninstall** from the same *Download New Services* dialog, or run `kpeek-servicemenu/uninstall.sh`. Either also
-removes the shortcut.
+removes the shortcut and forgets whether you hid *Peek* in Dolphin's context menu settings, so a reinstall starts shown.
 
 ## Keys and mouse
 

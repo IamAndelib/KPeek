@@ -1,3 +1,6 @@
+1.0.8
+- Uninstalling also forgets whether Peek was hidden in Dolphin's context menu settings, so a reinstall shows it again.
+
 1.0.7
 - The installer sets the Meta+Space shortcut in Dolphin, unless another action already uses it. Uninstalling removes it.
 

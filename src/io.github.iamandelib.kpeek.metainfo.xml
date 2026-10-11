@@ -73,6 +73,11 @@ SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
     <control>pointing</control>
   </supports>
   <releases>
+    <release version="1.0.8" date="2026-10-11">
+      <description>
+        <p>Uninstalling also forgets whether Peek was hidden in Dolphin's context menu settings, so a reinstall shows it again.</p>
+      </description>
+    </release>
     <release version="1.0.7" date="2026-10-11">
       <description>
         <p>The installer sets the Meta+Space shortcut in Dolphin, unless another action already uses it. Uninstalling removes it.</p>
