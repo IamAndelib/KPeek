@@ -6,7 +6,30 @@ Use the arrow keys to move to the next file, and press the shortcut again to clo
 KPeek is to Dolphin what [PowerToys Peek](https://learn.microsoft.com/windows/powertoys/peek) is to Windows Explorer
 and [Sushi](https://gitlab.gnome.org/GNOME/sushi) is to GNOME Files.
 
-> **Status:** early development. The viewers below work; the Flatpak and the KDE Store listing are coming.
+![KPeek previewing an image](docs/screenshots/image.png)
+
+## Install
+
+KPeek runs as a Flatpak, so it works on any distribution with KDE Plasma 6 and Flatpak.
+
+**From Dolphin (recommended).** Open *Settings → Configure Dolphin… → Context Menu → Download New Services…*,
+search for **KPeek** and click *Install*. A terminal window shows the progress: it downloads KPeek, and the
+first time also the KDE runtime it runs on (about 1 GB, shared with other KDE Flatpaks). Restart Dolphin
+afterwards. Installing it again later updates KPeek.
+
+**By hand.** Download `kpeek.flatpak` and `kpeek-servicemenu.tar.gz` from the
+[latest release](https://github.com/IamAndelib/KPeek/releases/latest), then:
+
+```sh
+flatpak install --user kpeek.flatpak
+tar -xzf kpeek-servicemenu.tar.gz
+kpeek-servicemenu/install-it.sh   # also downloads the newest release and adds "Peek" to Dolphin
+```
+
+**Set the shortcut** (Dolphin 26.04 or later): in Dolphin, open *Settings → Configure Keyboard Shortcuts*,
+search for *Peek*, and assign <kbd>Meta</kbd>+<kbd>Space</kbd>. Without a shortcut, right-click a file and choose *Peek*.
+
+**Uninstall** from the same *Download New Services* dialog, or run `kpeek-servicemenu/uninstall.sh`.
 
 ## What it previews
 
@@ -14,7 +37,7 @@ and [Sushi](https://gitlab.gnome.org/GNOME/sushi) is to GNOME Files.
 |---|---|
 | Images (JPEG, PNG, WebP, AVIF, JXL, HEIC, SVG…) and GIF/WebP animations | Fitted to the window |
 | PDF | Every page, with scrolling, a page counter and zoom |
-| Office documents (docx, odt, xlsx, ods, pptx, odp, doc, rtf…) | Every page, rendered through LibreOffice and cached. The Flatpak, which stays sandboxed, shows the first-page picture stored in the document |
+| Office documents (docx, odt, xlsx, ods, pptx, odp, doc, rtf…) | The Flatpak shows the first-page picture stored in the document (most ODF files and many Office files have one); it never reaches outside its sandbox. Builds from source render every page through LibreOffice |
 | Video and audio | Starts playing immediately; seek bar, mute, and title/artist for audio |
 | Source code and text | Syntax highlighting that follows your color scheme |
 | Markdown | Rendered, with a source toggle |
@@ -71,8 +94,8 @@ Invoking it again on the file that's already showing closes the preview.
 ## Requirements
 
 - KDE Plasma 6 with Dolphin ≥ 26.04 (needed for the keyboard shortcut; the context menu entry works with older versions)
-- Qt ≥ 6.8, KDE Frameworks ≥ 6.10, Kirigami, Poppler (Qt 6), libarchive, QtMultimedia, Qt Quick 3D, KSyntaxHighlighting
-- Optional: LibreOffice, from your distribution or Flathub, for office document previews
+- To build from source: Qt ≥ 6.8, KDE Frameworks ≥ 6.10, Kirigami, Poppler (Qt 6), libarchive, libdbus, QtMultimedia,
+  Qt Quick 3D, KSyntaxHighlighting. Optional: LibreOffice, for rendering every page of office documents
 
 ## Building
 
@@ -93,7 +116,16 @@ scripts/dev-install-servicemenu.sh          # adds "Peek" to Dolphin, running ./
 scripts/dev-install-servicemenu.sh --remove # undo
 ```
 
-Then bind the shortcut as described above and restart Dolphin. After rebuilding, run `pkill -x kpeek`,
+Then bind the shortcut as described above and restart Dolphin.
+
+To build the Flatpak bundle and the KDE Store package (needs `flatpak-builder` and the KDE 6.11 SDK):
+
+```sh
+scripts/build-flatpak.sh        # writes kpeek.flatpak and installs it for your user
+scripts/build-store-package.sh  # writes dist/kpeek-servicemenu.tar.gz
+```
+
+Pushing a `v*` tag builds both and attaches them to a GitHub release. After rebuilding, run `pkill -x kpeek`,
 because the resident instance keeps running the old binary. Set `QT_FORCE_STDERR_LOGGING=1` to see Qt's
 messages in the terminal instead of the system journal.
 
@@ -117,10 +149,19 @@ Please follow the [KDE Community Code of Conduct](https://kde.org/code-of-conduc
 
 - [x] Image, PDF, office, media, text/code, Markdown, archive, comic, 3D model and font viewers
 - [x] Universal zoom and grab-to-pan
+- [x] Flatpak, and one-click install from Dolphin's *Download New Services* (KDE Store)
+- [ ] Flathub
 - [ ] Polish: window resizes to fit images, pin the window size, settings
-- [ ] Flatpak on Flathub
-- [ ] One-click install from Dolphin's *Get New → Dolphin Service Menus* (KDE Store), including the shortcut setup
+
+## How KPeek was made
+
+KPeek's maintainer directed its design and tested it on real hardware, and wrote it together with an AI
+coding assistant (Anthropic's Claude): most of the code, tests, packaging scripts and documentation were
+drafted with its help and reviewed, tested and revised before being committed. Commits it contributed to
+carry a `Co-Authored-By: Claude` line.
 
 ## License
 
 GPL-2.0-or-later. Build files are BSD-2-Clause. See [`LICENSES/`](LICENSES/).
+
+The screenshots show KDE Plasma's "Next" wallpaper (CC-BY-SA-4.0, by the KDE Visual Design Group).

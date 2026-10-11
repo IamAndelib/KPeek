@@ -7,3 +7,9 @@ path = ["README.md", "CLAUDE.md", ".gitignore", ".github/**"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>"
 SPDX-License-Identifier = "CC0-1.0"
+
+[[annotations]]
+path = ["docs/screenshots/**"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = ["2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>", "KDE Visual Design Group (\"Next\" wallpaper)"]
+SPDX-License-Identifier = "CC-BY-SA-4.0"

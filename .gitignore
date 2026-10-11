@@ -7,3 +7,5 @@ compile_commands.json
 *.user
 .clangd
 /.claude/
+/flatpak-build/
+/kpeek.flatpak

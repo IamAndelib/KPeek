@@ -1,0 +1,49 @@
+name: Release
+
+# Pushing a tag like v1.2.0 builds the Flatpak bundle and the KDE Store package and publishes a
+# GitHub release with both attached. The release notes are the tag's message:
+#   git tag -a v1.2.0 -m "KPeek 1.2.0" -m "- what changed"   &&   git push origin v1.2.0
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    # Flatpak builds need namespaces, hence a privileged container (as in the local dev container).
+    container:
+      image: registry.fedoraproject.org/fedora:44
+      options: --privileged
+    steps:
+      - name: Install tools
+        run: |
+          dnf install -y --setopt=install_weak_deps=False git flatpak flatpak-builder gh
+          flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user -y --noninteractive flathub org.kde.Sdk//6.11 org.kde.Platform//6.11
+
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Check the version matches the tag
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          grep -q "project(kpeek VERSION $version " CMakeLists.txt
+          grep -q "<release version=\"$version\"" src/io.github.iamandelib.kpeek.metainfo.xml
+
+      - name: Build
+        run: |
+          scripts/build-flatpak.sh --no-install
+          scripts/build-store-package.sh
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git tag -l --format='%(contents)' "$GITHUB_REF_NAME" > notes.md
+          gh release create "$GITHUB_REF_NAME" --title "KPeek ${GITHUB_REF_NAME#v}" --notes-file notes.md \
+            kpeek.flatpak dist/kpeek-servicemenu.tar.gz

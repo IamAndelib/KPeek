@@ -15,24 +15,52 @@ SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
   <description>
     <p>
       KPeek brings Quick Look to KDE's file manager. Select a file in Dolphin, press Meta+Space,
-      and a preview appears. Use the arrow keys or the mouse wheel to move through the folder,
-      and press the shortcut again to close it.
+      and a preview appears. Use the arrow keys to move through the folder, and press the
+      shortcut again to close it.
     </p>
     <p>It previews:</p>
     <ul>
-      <li>Images, including animated GIF and WebP</li>
-      <li>PDF documents</li>
-      <li>Office documents, rendered through LibreOffice when it is installed</li>
+      <li>Images, including HEIC, AVIF, JPEG XL, SVG and animated GIF and WebP</li>
+      <li>PDF documents and comic books (CBZ, CBR, CB7, CBT)</li>
+      <li>Office documents, from the preview picture stored in the document</li>
       <li>Video and audio</li>
       <li>Source code and text with syntax highlighting, and rendered Markdown</li>
-      <li>The contents of zip, tar and 7z archives</li>
+      <li>3D models (glTF, OBJ, STL, 3MF)</li>
+      <li>The contents of zip, tar, 7z, RAR, ISO and other archives</li>
       <li>Fonts</li>
     </ul>
+    <p>
+      Everything else shows Dolphin's thumbnail and the file's details. KPeek opens files read-only,
+      never accesses the network, and stays light on memory.
+    </p>
+    <p>
+      To open KPeek from Dolphin, install the "KPeek" service menu from Dolphin's
+      Settings, Configure Dolphin, Context Menu, Download New Services, or follow the
+      instructions on the project page.
+    </p>
   </description>
   <launchable type="desktop-id">io.github.iamandelib.kpeek.desktop</launchable>
   <url type="homepage">https://github.com/IamAndelib/KPeek</url>
   <url type="bugtracker">https://github.com/IamAndelib/KPeek/issues</url>
   <url type="vcs-browser">https://github.com/IamAndelib/KPeek</url>
+  <screenshots>
+    <screenshot type="default">
+      <caption>An image preview</caption>
+      <image>https://raw.githubusercontent.com/IamAndelib/KPeek/v1.0.0/docs/screenshots/image.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Source code with syntax highlighting</caption>
+      <image>https://raw.githubusercontent.com/IamAndelib/KPeek/v1.0.0/docs/screenshots/code.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Rendered Markdown</caption>
+      <image>https://raw.githubusercontent.com/IamAndelib/KPeek/v1.0.0/docs/screenshots/markdown.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>The contents of an archive</caption>
+      <image>https://raw.githubusercontent.com/IamAndelib/KPeek/v1.0.0/docs/screenshots/archive.png</image>
+    </screenshot>
+  </screenshots>
   <categories>
     <category>Utility</category>
   </categories>
@@ -49,9 +77,14 @@ SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
     <control>pointing</control>
   </supports>
   <releases>
-    <release version="0.1.0" date="2026-10-11">
+    <release version="1.0.0" date="2026-10-11">
       <description>
-        <p>First release.</p>
+        <p>First stable release.</p>
+        <ul>
+          <li>Previews images, PDFs, comic books, office documents, video and audio, text and code, Markdown, 3D models, archives and fonts</li>
+          <li>Zoom with Ctrl and the mouse wheel or the header buttons, and pan by dragging</li>
+          <li>Moves through the selection or the whole folder with the arrow keys</li>
+        </ul>
       </description>
     </release>
   </releases>

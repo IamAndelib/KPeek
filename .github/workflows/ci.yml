@@ -52,5 +52,5 @@ jobs:
         run: |
           desktop-file-validate src/io.github.iamandelib.kpeek.desktop
           appstreamcli validate --no-net src/io.github.iamandelib.kpeek.metainfo.xml
-          shellcheck scripts/*.sh
+          shellcheck scripts/*.sh packaging/kde-store/*.sh
           reuse lint
