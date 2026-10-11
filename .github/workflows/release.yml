@@ -46,4 +46,4 @@ jobs:
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           git tag -l --format='%(contents)' "$GITHUB_REF_NAME" > notes.md
           gh release create "$GITHUB_REF_NAME" --title "KPeek ${GITHUB_REF_NAME#v}" --notes-file notes.md \
-            kpeek.flatpak dist/kpeek-servicemenu.tar.gz
+            kpeek.flatpak dist/kpeek-servicemenu-*.tar.gz

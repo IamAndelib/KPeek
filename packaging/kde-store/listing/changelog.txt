@@ -1,0 +1,4 @@
+1.0.0: first stable release.
+- Previews images, PDFs, comic books, office documents, video and audio, text and code, Markdown, 3D models, archives and fonts.
+- Arrow keys move through the selection or the whole folder; zoom with Ctrl and the mouse wheel or the header buttons; drag to pan.
+- Works with Dolphin on any desktop and distribution with Flatpak; opens files read-only, never accesses the network, runs sandboxed.

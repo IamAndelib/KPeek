@@ -25,15 +25,15 @@ git push origin vx.y.z
 ```
 
 The tag message becomes the release notes. The *Release* workflow checks that the version matches the two
-files above, builds `kpeek.flatpak` and `kpeek-servicemenu.tar.gz`, and publishes the GitHub release with both
+files above, builds `kpeek.flatpak` and `kpeek-servicemenu-x.y.z.tar.gz`, and publishes the GitHub release with both
 attached (about 20 minutes; follow it under *Actions*).
 
 ## 3. Update the KDE Store listing
 
-1. Download `kpeek-servicemenu.tar.gz` from the new GitHub release.
+1. Download `kpeek-servicemenu-x.y.z.tar.gz` from the new GitHub release.
 2. On [store.kde.org](https://store.kde.org), open the KPeek product and click *Edit*.
-3. Under *Files*, upload the new `kpeek-servicemenu.tar.gz`, set its version to `x.y.z`, and remove or
-   archive the old file.
+3. Under *Files*, upload the new `kpeek-servicemenu-x.y.z.tar.gz`, set its version to `x.y.z`, and remove or
+   archive the old file. Paste the release notes into the changelog field.
 4. Set the product's version to `x.y.z` and save.
 
 Dolphin then shows *Update* for KPeek in *Configure Dolphin → Context Menu → Download New Services*. Updating

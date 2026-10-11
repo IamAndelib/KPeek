@@ -30,7 +30,7 @@ else
     wget -O "$tmp/kpeek.flatpak" "$BUNDLE_URL"
 fi
 
-echo "==> Installing KPeek (the first time, this also downloads the KDE runtime, about 1 GB)"
+echo "==> Installing KPeek (the first time, this also downloads the KDE runtime, about 400 MB, unless another app already installed it)"
 flatpak install --user --reinstall -y "$tmp/kpeek.flatpak"
 flatpak info --user "$APP" | grep -E '^ *Version:' || true
 

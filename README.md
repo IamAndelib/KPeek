@@ -10,20 +10,20 @@ and [Sushi](https://gitlab.gnome.org/GNOME/sushi) is to GNOME Files.
 
 ## Install
 
-KPeek runs as a Flatpak, so it works on any distribution with KDE Plasma 6 and Flatpak.
+KPeek runs as a Flatpak, so it works on any distribution with Flatpak, and with Dolphin on any desktop:
+Plasma, GNOME, Xfce or a tiling window manager.
 
 **From Dolphin (recommended).** Open *Settings → Configure Dolphin… → Context Menu → Download New Services…*,
 search for **KPeek** and click *Install*. A terminal window shows the progress: it downloads KPeek, and the
-first time also the KDE runtime it runs on (about 1 GB, shared with other KDE Flatpaks). Restart Dolphin
+first time also the KDE runtime it runs on (a 400 MB download, shared with other KDE Flatpaks). Restart Dolphin
 afterwards. Installing it again later updates KPeek.
 
-**By hand.** Download `kpeek.flatpak` and `kpeek-servicemenu.tar.gz` from the
+**By hand.** Download `kpeek-servicemenu-<version>.tar.gz` from the
 [latest release](https://github.com/IamAndelib/KPeek/releases/latest), then:
 
 ```sh
-flatpak install --user kpeek.flatpak
-tar -xzf kpeek-servicemenu.tar.gz
-kpeek-servicemenu/install-it.sh   # also downloads the newest release and adds "Peek" to Dolphin
+tar -xzf kpeek-servicemenu-*.tar.gz
+kpeek-servicemenu/install-it.sh   # installs the newest KPeek Flatpak and adds "Peek" to Dolphin
 ```
 
 **Set the shortcut** (Dolphin 26.04 or later): in Dolphin, open *Settings → Configure Keyboard Shortcuts*,
@@ -93,7 +93,8 @@ Invoking it again on the file that's already showing closes the preview.
 
 ## Requirements
 
-- KDE Plasma 6 with Dolphin ≥ 26.04 (needed for the keyboard shortcut; the context menu entry works with older versions)
+- Dolphin, on any desktop; Dolphin ≥ 26.04 for the keyboard shortcut (the context menu entry works with older versions)
+- Flatpak
 - To build from source: Qt ≥ 6.8, KDE Frameworks ≥ 6.10, Kirigami, Poppler (Qt 6), libarchive, libdbus, QtMultimedia,
   Qt Quick 3D, KSyntaxHighlighting. Optional: LibreOffice, for rendering every page of office documents
 
@@ -122,7 +123,7 @@ To build the Flatpak bundle and the KDE Store package (needs `flatpak-builder` a
 
 ```sh
 scripts/build-flatpak.sh        # writes kpeek.flatpak and installs it for your user
-scripts/build-store-package.sh  # writes dist/kpeek-servicemenu.tar.gz
+scripts/build-store-package.sh  # writes dist/kpeek-servicemenu-<version>.tar.gz
 ```
 
 Pushing a `v*` tag builds both and attaches them to a GitHub release. After rebuilding, run `pkill -x kpeek`,
