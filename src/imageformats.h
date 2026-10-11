@@ -34,11 +34,15 @@ inline const ImageFormats &imageFormats()
             const QStringList files = dir.entryList(QDir::Files);
             for (const QString &file : files) {
                 const QJsonObject metaData = QPluginLoader(dir.filePath(file)).metaData().value(QLatin1String("MetaData")).toObject();
-                for (const QJsonValue &key : metaData.value(QLatin1String("Keys")).toArray()) {
-                    f.keys.insert(key.toString().toLatin1());
-                }
-                for (const QJsonValue &type : metaData.value(QLatin1String("MimeTypes")).toArray()) {
-                    f.mimeTypes.insert(type.toString().toLatin1());
+                const QJsonArray keys = metaData.value(QLatin1String("Keys")).toArray();
+                const QJsonArray mimeTypes = metaData.value(QLatin1String("MimeTypes")).toArray();
+                // Parallel lists, read pairwise like QImageReader does: Qt's JPEG 2000 plugin lists more MIME types
+                // than keys, and the extra video/mj2 is a video no image reader opens.
+                for (qsizetype i = 0; i < keys.size(); ++i) {
+                    f.keys.insert(keys.at(i).toString().toLatin1());
+                    if (i < mimeTypes.size()) {
+                        f.mimeTypes.insert(mimeTypes.at(i).toString().toLatin1());
+                    }
                 }
             }
         }
