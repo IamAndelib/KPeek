@@ -6,16 +6,19 @@ The KDE Store listing text: paste everything below the line into the store's des
 -->
 ---
 
-**Quick Look for Dolphin.** Select a file, press Meta+Space, and a preview appears. Use the arrow keys to move through the folder, and press Meta+Space again to close it.
+**Quick Look for Dolphin.** Tap Meta+Space on a file and it pops up. Tap again and it's gone.
 
-**Previews:** images (including HEIC, AVIF, JPEG XL, SVG and animations), PDFs, comic books, office documents (the preview picture stored in the document), video and audio, text and code with syntax highlighting, Markdown, 3D models, archives (zip, tar, 7z, RAR, ISO and more) and fonts. Everything else shows Dolphin's thumbnail and the file's details.
+- **Instant:** KPeek stays warm in the background, so previews open in a blink, and Dolphin's own thumbnail shows up first while the full file loads.
+- **Previews nearly everything:** photos (HEIC, AVIF, JPEG XL, animated GIF/WebP), PDFs and comic books, video and music, code in 300+ languages, Markdown, 3D models, archives and fonts.
+- **Glide through folders:** the arrow keys walk the whole folder or just your selection. Ctrl+wheel zooms anything; drag to pan.
+- **Featherweight:** photos decode once at screen size, the graphics card does the zooming and the video decoding, and KPeek drops to about 65 MB the moment you close it.
+- **Sandboxed and private:** a Flatpak that opens your files read-only and never touches the network.
+- **Any desktop:** Plasma, GNOME, Xfce or a tiling window manager. If you use Dolphin, KPeek works.
 
-**Installing:** click Install. A terminal window opens and shows the progress: it installs KPeek as a Flatpak and, the first time, the KDE runtime it runs on (a 400 MB download, shared with other KDE Flatpaks). Restart Dolphin afterwards. Flatpak must be installed (it is on most Plasma systems).
+**Install:** click Install. A terminal window shows the progress: KPeek installs as a Flatpak, and the first time also the KDE runtime it runs on (a 400 MB download, shared with other KDE Flatpaks). Restart Dolphin afterwards. Needs Flatpak, which most distributions include.
 
-**Keyboard shortcut** (Dolphin 26.04 or later): in Dolphin, open Settings → Configure Keyboard Shortcuts, search for "Peek" and assign Meta+Space. Without a shortcut, right-click a file and choose Peek.
+**Shortcut** (Dolphin 26.04 or later): Settings → Configure Keyboard Shortcuts → search "Peek" → Meta+Space. Or right-click a file and choose Peek.
 
-**Updating:** when a new version is listed here, click Update in the same dialog.
+**Updates:** click Update here when a new version is listed.
 
-**Any desktop:** KPeek works with Dolphin on Plasma, GNOME, Xfce or a tiling window manager, on any distribution with Flatpak.
-
-KPeek opens files read-only, never accesses the network, and runs sandboxed. It is free software (GPL-2.0-or-later), written with the help of an AI coding assistant; details, source code and bug reports: https://github.com/IamAndelib/KPeek
+Free software (GPL-2.0-or-later), written with the help of an AI coding assistant. Source code and bug reports: https://github.com/IamAndelib/KPeek

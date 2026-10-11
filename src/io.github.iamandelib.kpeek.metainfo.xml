@@ -45,20 +45,16 @@ SPDX-FileCopyrightText: 2026 Andelib Taref Srizon <andelibtarefsrizon@gmail.com>
   <url type="vcs-browser">https://github.com/IamAndelib/KPeek</url>
   <screenshots>
     <screenshot type="default">
-      <caption>An image preview</caption>
-      <image>https://raw.githubusercontent.com/IamAndelib/KPeek/v1.0.0/docs/screenshots/image.png</image>
+      <caption>Previewing a photo</caption>
+      <image>https://raw.githubusercontent.com/IamAndelib/KPeek/main/docs/screenshots/image.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Previewing a PDF</caption>
+      <image>https://raw.githubusercontent.com/IamAndelib/KPeek/main/docs/screenshots/pdf.png</image>
     </screenshot>
     <screenshot>
       <caption>Source code with syntax highlighting</caption>
-      <image>https://raw.githubusercontent.com/IamAndelib/KPeek/v1.0.0/docs/screenshots/code.png</image>
-    </screenshot>
-    <screenshot>
-      <caption>Rendered Markdown</caption>
-      <image>https://raw.githubusercontent.com/IamAndelib/KPeek/v1.0.0/docs/screenshots/markdown.png</image>
-    </screenshot>
-    <screenshot>
-      <caption>The contents of an archive</caption>
-      <image>https://raw.githubusercontent.com/IamAndelib/KPeek/v1.0.0/docs/screenshots/archive.png</image>
+      <image>https://raw.githubusercontent.com/IamAndelib/KPeek/main/docs/screenshots/code.png</image>
     </screenshot>
   </screenshots>
   <categories>

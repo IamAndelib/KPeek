@@ -1,12 +1,42 @@
 # KPeek
 
-**Quick Look for Dolphin.** Select a file in KDE's file manager, press <kbd>Meta</kbd>+<kbd>Space</kbd>, and a preview pops up.
-Use the arrow keys to move to the next file, and press the shortcut again to close the preview.
+**Quick Look for Dolphin.** Tap <kbd>Meta</kbd>+<kbd>Space</kbd> on a file and it pops up. Tap again and it's gone.
 
-KPeek is to Dolphin what [PowerToys Peek](https://learn.microsoft.com/windows/powertoys/peek) is to Windows Explorer
-and [Sushi](https://gitlab.gnome.org/GNOME/sushi) is to GNOME Files.
+![KPeek previewing a photo](docs/screenshots/image.png)
 
-![KPeek previewing an image](docs/screenshots/image.png)
+<p align="center">
+  <img src="docs/screenshots/pdf.png" width="49%" alt="KPeek previewing a PDF">
+  <img src="docs/screenshots/code.png" width="49%" alt="KPeek previewing Python code with syntax highlighting">
+</p>
+
+## Highlights
+
+- **Instant.** KPeek stays warm in the background, so previews open in a blink, and Dolphin's own
+  thumbnail shows up first while the full file loads.
+- **Previews nearly everything.** Photos (HEIC, AVIF, JPEG XL, animated GIF/WebP), PDFs and comic books,
+  video and music, code in 300+ languages, Markdown, 3D models, archives and fonts.
+- **Glide through folders.** <kbd>←</kbd> <kbd>→</kbd> walk the whole folder or just your selection.
+  <kbd>Ctrl</kbd>+wheel zooms anything; drag to pan.
+- **Featherweight.** Photos decode once at screen size (a 24 MP shot peaks around 225 MB), the graphics card
+  does the zooming and the video decoding, and KPeek drops to about 65 MB the moment you close it.
+- **Sandboxed and private.** A Flatpak that opens your files read-only and never touches the network.
+- **Any desktop.** Plasma, GNOME, Xfce or a tiling window manager: if you use Dolphin, KPeek works.
+
+Like [PowerToys Peek](https://learn.microsoft.com/windows/powertoys/peek) for Windows Explorer and
+[Sushi](https://gitlab.gnome.org/GNOME/sushi) for GNOME Files, built for Dolphin.
+
+## What it previews
+
+| | |
+|---|---|
+| **Images** | JPEG, PNG, WebP, AVIF, JPEG XL, HEIC, SVG, animated GIF and WebP |
+| **Documents** | PDF, comic books (CBZ, CBR, CB7, CBT), office files (their built-in first-page preview) |
+| **Media** | Video and audio, with seeking and track info |
+| **Text** | Source code with syntax highlighting, rendered Markdown |
+| **3D** | glTF/GLB, OBJ, STL, 3MF; drag to orbit |
+| **Archives** | zip, tar, 7z, RAR, ISO, deb, rpm and more, as a browsable tree |
+| **Fonts** | A specimen at several sizes |
+| **Everything else** | Dolphin's thumbnail plus type, size and date |
 
 ## Install
 
@@ -31,42 +61,7 @@ search for *Peek*, and assign <kbd>Meta</kbd>+<kbd>Space</kbd>. Without a shortc
 
 **Uninstall** from the same *Download New Services* dialog, or run `kpeek-servicemenu/uninstall.sh`.
 
-## What it previews
-
-| Type | Preview |
-|---|---|
-| Images (JPEG, PNG, WebP, AVIF, JXL, HEIC, SVG…) and GIF/WebP animations | Fitted to the window |
-| PDF | Every page, with scrolling, a page counter and zoom |
-| Office documents (docx, odt, xlsx, ods, pptx, odp, doc, rtf…) | The Flatpak shows the first-page picture stored in the document (most ODF files and many Office files have one); it never reaches outside its sandbox. Builds from source render every page through LibreOffice |
-| Video and audio | Starts playing immediately; seek bar, mute, and title/artist for audio |
-| Source code and text | Syntax highlighting that follows your color scheme |
-| Markdown | Rendered, with a source toggle |
-| Comic books (cbz, cbr, cb7, cbt) | Every page, like a PDF |
-| 3D models (glTF/GLB, OBJ, STL, 3MF) | Drag to orbit; needs GPU rendering |
-| Archives (zip, tar.*, 7z, rar, iso, deb, rpm, cab, cpio…) | Contents tree with sizes |
-| Fonts | Specimen at several sizes |
-| Folders and everything else (camera RAW, Blender, …) | Dolphin's thumbnail when it has one, else the icon; type, size and modification date |
-
-### Light on resources
-
-- **Images** are decoded once at screen size, however many megapixels they have. The first zoom past that
-  loads full detail once (up to 8192 px a side); zooming itself is done by the graphics card, so it is smooth
-  and never flashes. A 24-megapixel photo peaks around 225 MB, a 384-megapixel one stays near 125 MB.
-- **Dolphin's thumbnails** are shown instantly as placeholders while the full image or video loads.
-- **Video** is decoded by the graphics card where possible (VA-API). A large video in a codec the card
-  probably can't decode (e.g. 4K AV1) waits for you to press Play instead of loading the processor.
-- **Machines with 4 GB of memory or less** get lower limits for image and PDF detail automatically.
-- **When hidden**, KPeek stays in the background for 10 minutes so the next preview opens instantly,
-  but hands back the memory used by the last preview.
-
-### Troubleshooting
-
-- Video plays badly or not at all with a broken GPU driver: start with `QT_FFMPEG_DECODING_HW_DEVICE_TYPES=,`
-  to decode on the processor.
-- Rendering problems with an unusual GPU: try `QSG_RHI_BACKEND=vulkan`, or `QT_QUICK_BACKEND=software`.
-- Force the low-memory limits: `KPEEK_LOW_MEMORY=1`.
-
-### Keys and mouse
+## Keys and mouse
 
 With several files selected, KPeek moves through those; with one, through its whole folder.
 
@@ -80,6 +75,13 @@ With several files selected, KPeek moves through those; with one, through its wh
 | <kbd>Meta</kbd>+<kbd>Space</kbd>, <kbd>Space</kbd>, <kbd>Esc</kbd>, <kbd>Q</kbd> | Close |
 | <kbd>K</kbd>, <kbd>J</kbd> / <kbd>L</kbd>, <kbd>M</kbd> | Play/pause, back/forward 10 seconds, mute (media) |
 | <kbd>Ctrl</kbd>+<kbd>U</kbd> | Show the Markdown source |
+
+## Troubleshooting
+
+- Video plays badly or not at all with a broken GPU driver: start with `QT_FFMPEG_DECODING_HW_DEVICE_TYPES=,`
+  to decode on the processor.
+- Rendering problems with an unusual GPU: try `QSG_RHI_BACKEND=vulkan`, or `QT_QUICK_BACKEND=software`.
+- Force the low-memory limits: `KPEEK_LOW_MEMORY=1`.
 
 ## How it integrates with Dolphin
 
@@ -165,4 +167,5 @@ carry a `Co-Authored-By: Claude` line.
 
 GPL-2.0-or-later. Build files are BSD-2-Clause. See [`LICENSES/`](LICENSES/).
 
-The screenshots show KDE Plasma's "Next" wallpaper (CC-BY-SA-4.0, by the KDE Visual Design Group).
+The screenshots show KDE Plasma's "Next" wallpaper (CC-BY-SA-4.0, by the KDE Visual Design Group) and a
+[photo of Moraine Lake](https://commons.wikimedia.org/wiki/File:Moraine_Lake_17092005.jpg) by Gorgo (public domain).

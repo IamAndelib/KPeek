@@ -27,7 +27,7 @@ Open [store.kde.org/product/add](https://store.kde.org/product/add) (logged in a
 | License | GPLv2 or later (`GPL-2.0-or-later`) |
 | Source (link to git repository) | `https://github.com/IamAndelib/KPeek` (the **Source** field, not Homepage) |
 | Logo | `kpeek-512.png` |
-| Gallery / screenshots | in order: `image.png`, `code.png`, `markdown.png`, `archive.png` from `docs/screenshots/` |
+| Gallery / screenshots | in order: `image.png`, `pdf.png`, `code.png` from `docs/screenshots/` |
 | Changelog | `changelog.txt` |
 
 ### Files step
