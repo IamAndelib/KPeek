@@ -68,6 +68,10 @@ another Dolphin action already uses that key or you had already given Peek a sho
 switches the keyboard layout before Dolphin sees it: pick another key there. Without a shortcut, right-click a file
 and choose *Peek*.
 
+**Known issue (Dolphin 26.04–26.08):** Peek's shortcut stops working after you change the theme, colour scheme,
+fonts, icons or accent colour, until Dolphin is restarted. Right-click → *Peek* keeps working. This is a Dolphin bug
+([KDE bug 522563](https://bugs.kde.org/show_bug.cgi?id=522563)), mostly fixed for Dolphin 26.12.
+
 **Uninstall** from the same *Download New Services* dialog, or run `kpeek-servicemenu/uninstall.sh`. Either also
 removes the shortcut and forgets whether you hid *Peek* in Dolphin's context menu settings, so a reinstall starts shown.
 
